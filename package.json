@@ -5,8 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:static": "STATIC_EXPORT=true next build",
-    "pages:build": "STATIC_EXPORT=true npm run build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
