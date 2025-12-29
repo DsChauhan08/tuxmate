@@ -25,7 +25,7 @@ a new machine or can't remember all the package names for your favorite apps?
 ## 📦 Supported Distributions
 
 - Ubuntu / Debian (apt)
-- Arch Linux (pacman + AUR via yay)
+- Arch Linux (pacman + AUR)
 - Fedora (dnf)
 - openSUSE (zypper)
 - Nix (nix-env)
