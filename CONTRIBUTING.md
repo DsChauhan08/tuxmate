@@ -185,11 +185,9 @@ TuxMate uses the [Iconify API](https://iconify.design/) for icons. Icon helpers 
 | Function | Use Case | Example |
 |----------|----------|---------|
 | `si('slug', '#color')` | Simple Icons (brands) | `si('firefox', '#FF7139')` |
-| `lo('slug')` | Colorful logos | `lo('chrome')` |
-| `mdi('slug', '#color')` | Material Design icons | `mdi('console', '#57F287')` |
-| `dev('slug')` | Devicon (dev tools) | `dev('vscode')` |
-| `sk('slug')` | Skill Icons (colorful) | `sk('react')` |
+| `lo('slug')` | Logos (already colorful) | `lo('chrome')` |
 | `vs('slug')` | VS Code file icons | `vs('file-type-shell')` |
+| `mdi('slug', '#color')` | Material Design icons | `mdi('console', '#57F287')` |
 
 ### Finding Icon Slugs
 

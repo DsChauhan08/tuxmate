@@ -35,7 +35,7 @@ a new machine or can't remember all the package names for your favorite apps?
 ## ✨ Features 🌟
 
 ### **Application Catalog**  
-150+ applications across 15 categories: browsers, communication, dev tools, terminals, media, creative software, gaming, office, VPN/network, security, and more.
+180+ applications across 15 categories: browsers, communication, dev tools, terminals, media, creative software, gaming, office, VPN/network, security, and more.
 
 ### **Smart Script Generation**  
 - Detects already-installed packages
@@ -92,20 +92,22 @@ src/
 │   └── globals.css         # Tailwind styles
 ├── components/
 │   ├── app/                # App cards & categories
-│   ├── command/            # Command footer & AUR bar
+│   ├── command/            # Command footer & AUR settings
 │   ├── common/             # Tooltips, loading states
 │   ├── distro/             # Distribution selector
-│   ├── header/             # Header & theme toggle
-│   └── ui/                 # Base UI components
+│   ├── header/             # Header links & info
+│   ├── search/             # Search overlay
+│   └── ui/                 # Theme toggle
 ├── hooks/                  # React hooks
 │   ├── useLinuxInit.ts     # Main app state management
 │   ├── useKeyboardNavigation.ts
-│   ├── useTheme.ts
+│   ├── useTheme.tsx
 │   └── useDelayedTooltip.ts
 ├── lib/
 │   ├── data.ts             # Apps, distros, icons
 │   ├── aur.ts              # AUR package detection
 │   ├── analytics.ts        # Umami tracking
+│   ├── utils.ts            # Utility functions
 │   ├── generateInstallScript.ts
 │   └── scripts/            # Per-distro script generators
 └── __tests__/              # Vitest unit tests
@@ -197,11 +199,24 @@ docker run -p 3000:3000 \
 
 
 ## 🚀 Usage
-you can use the Arrow Keys or `h` `j` `k` `l` to navigate, `Enter` to select, `Esc` to go back, `Space` to toggle selection.
 1. Select your distribution from the dropdown
 2. Browse categories and select applications
 3. Copy the generated command or download the full install script
 4. Run the script on your Linux machine
+
+### ⌨️ Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `↑` `↓` `←` `→` / `h` `j` `k` `l` | Navigate apps |
+| `Space` | Toggle app selection |
+| `Esc` | Clear focus |
+| `/` | Focus search |
+| `y` | Copy command |
+| `d` | Download script |
+| `t` | Toggle theme |
+| `c` | Clear all selections |
+| `Tab` | Toggle preview drawer |
 
 ## 🤝 Contribution
 
@@ -214,7 +229,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ### Completed
 - [x] Multi-distro support (Ubuntu, Debian, Arch, Fedora, openSUSE)
 - [x] Nix, Flatpak & Snap universal package support
-- [x] 150+ applications across 15 categories
+- [x] 180+ applications across 15 categories
 - [x] Smart script generation with error handling
 - [x] Dark / Light theme toggle with smooth animations
 - [x] Copy command & Download script
