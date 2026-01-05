@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useCallback, useRef, useLayoutEffect, useEffect } from 'react';
-import { X } from 'lucide-react';
 import gsap from 'gsap';
 
 // Hooks
@@ -206,7 +205,7 @@ export default function Home() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         {/* Logo & Title */}
                         <div className="header-animate">
-                            <div className="flex items-start gap-4">
+                            <div className="flex items-center gap-4">
                                 <img
                                     src="/tuxmate.png"
                                     alt="TuxMate Logo"
@@ -216,15 +215,14 @@ export default function Home() {
                                     <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ transition: 'color 0.5s' }}>
                                         TuxMate
                                     </h1>
-                                    <p className="text-[10px] sm:text-xs text-[var(--text-muted)] uppercase tracking-widest" style={{ transition: 'color 0.5s' }}>
-                                        The Linux Bulk App Installer.
-                                    </p>
-                                    <div className="flex items-center gap-3 mt-1.5">
-                                        <p className="text-xs text-[var(--text-muted)]" style={{ transition: 'color 0.5s' }}>
-                                            Select apps • <span className="hidden sm:inline">Arrow keys + Space</span>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mt-0.5">
+                                        <p className="text-xs sm:text-sm text-[var(--text-muted)] tracking-widest uppercase opacity-80" style={{ transition: 'color 0.5s' }}>
+                                            The Linux Bulk App Installer.
                                         </p>
-                                        <span className="text-[var(--text-muted)] opacity-30">|</span>
-                                        <HowItWorks />
+                                        <span className="hidden sm:inline text-[var(--text-muted)] opacity-30 text-[10px]">•</span>
+                                        <div className="-ml-1 sm:ml-0 scale-90 sm:scale-100 origin-left opacity-80 hover:opacity-100 transition-opacity">
+                                            <HowItWorks />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -236,21 +234,6 @@ export default function Home() {
                             <div className="flex items-center gap-3 sm:gap-4">
                                 <GitHubLink />
                                 <ContributeLink />
-                                {selectedCount > 0 && (
-                                    <>
-                                        <span className="text-[var(--text-muted)] opacity-30 hidden sm:inline">·</span>
-                                        <button
-                                            onClick={clearAll}
-                                            className="group flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-rose-500 transition-colors duration-300"
-                                        >
-                                            <X className="w-4 h-4 transition-transform duration-300 group-hover:rotate-90" />
-                                            <span className="hidden sm:inline relative">
-                                                Clear ({selectedCount})
-                                                <span className="absolute bottom-0 left-0 w-0 h-px bg-rose-400 transition-[width] duration-300 group-hover:w-full" />
-                                            </span>
-                                        </button>
-                                    </>
-                                )}
                             </div>
 
                             {/* Control buttons */}

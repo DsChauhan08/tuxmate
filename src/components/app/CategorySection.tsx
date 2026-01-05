@@ -80,7 +80,6 @@ function CategorySectionComponent({
                 y: 0,
                 opacity: 1,
                 duration: 0.5,
-                stagger: 0.025,
                 ease: 'power2.out',
                 delay: delay + 0.1,
                 force3D: true

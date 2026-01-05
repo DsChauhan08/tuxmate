@@ -22,6 +22,7 @@ export function DistroSelector({
     const currentDistro = distros.find(d => d.id === selectedDistro);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 

@@ -22,12 +22,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [hydrated, setHydrated] = useState(false)
 
     useEffect(() => {
-        // On mount, sync with localStorage and mark as hydrated
-        const saved = localStorage.getItem('theme') as Theme | null
-        if (saved && saved !== theme) {
-            setTheme(saved)
-            document.documentElement.classList.toggle('light', saved === 'light')
-        }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setHydrated(true)
     }, [])
 

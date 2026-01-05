@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, Copy, ChevronUp, Download } from 'lucide-react';
+import { Check, Copy, ChevronUp, Download, X } from 'lucide-react';
 import { distros, type DistroId } from '@/lib/data';
 import { generateInstallScript } from '@/lib/generateInstallScript';
 import { analytics } from '@/lib/analytics';
@@ -226,6 +226,20 @@ export function CommandFooter({
                                         {command}
                                     </code>
                                 </div>
+
+                                {/* Clear button */}
+                                <button
+                                    onClick={clearAll}
+                                    disabled={selectedCount === 0}
+                                    className={`flex items-center gap-1.5 px-3 py-3 border-l border-[var(--border-primary)]/30 transition-colors ${selectedCount > 0
+                                        ? 'text-[var(--text-muted)] hover:bg-rose-500/10 hover:text-rose-400'
+                                        : 'text-[var(--text-muted)] opacity-50 cursor-not-allowed'
+                                        }`}
+                                    title="Clear All (c)"
+                                >
+                                    <X className="w-3 h-3 shrink-0" />
+                                    <span className="hidden sm:inline whitespace-nowrap">Clear</span>
+                                </button>
 
                                 {/* Download button */}
                                 <button

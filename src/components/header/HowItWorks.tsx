@@ -12,7 +12,24 @@ export function HowItWorks() {
     const [mounted, setMounted] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
 
+    const handleOpen = () => {
+        setIsClosing(false);
+        setIsOpen(true);
+        analytics.helpOpened();
+    };
+
+    const handleClose = () => {
+        setIsClosing(true);
+        analytics.helpClosed();
+        // Wait for exit animation to finish
+        setTimeout(() => {
+            setIsOpen(false);
+            setIsClosing(false);
+        }, 200);
+    };
+
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 
@@ -56,22 +73,6 @@ export function HowItWorks() {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [isOpen]);
 
-    const handleOpen = () => {
-        setIsClosing(false);
-        setIsOpen(true);
-        analytics.helpOpened();
-    };
-
-    const handleClose = () => {
-        setIsClosing(true);
-        analytics.helpClosed();
-        // Wait for exit animation to finish
-        setTimeout(() => {
-            setIsOpen(false);
-            setIsClosing(false);
-        }, 200);
-    };
-
     const modal = (
         <>
             {/* Backdrop with blur */}
@@ -90,180 +91,105 @@ export function HowItWorks() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="how-it-works-title"
-                className="fixed bg-[var(--bg-secondary)] border border-[var(--border-primary)] shadow-2xl z-[99999]"
+                className="fixed bg-[var(--bg-secondary)] border border-[var(--border-primary)] z-[99999]"
                 style={{
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    borderRadius: '20px',
-                    width: '440px',
+                    borderRadius: '16px',
+                    width: '620px',
                     maxWidth: 'calc(100vw - 32px)',
-                    maxHeight: 'min(80vh, 650px)',
+                    maxHeight: 'min(85vh, 720px)',
                     display: 'flex',
                     flexDirection: 'column',
                     animation: isClosing
                         ? 'modalSlideOut 0.2s ease-out forwards'
                         : 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                     overflow: 'hidden',
+                    boxShadow: '0 16px 48px -8px rgba(0, 0, 0, 0.2)',
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--border-primary)] shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 flex items-center justify-center">
-                            <HelpCircle className="w-5 h-5 text-[var(--accent)]" />
-                        </div>
-                        <div>
-                            <h3 id="how-it-works-title" className="text-lg font-semibold text-[var(--text-primary)]">How TuxMate Works</h3>
-                            <p className="text-xs text-[var(--text-muted)]">Quick guide &amp; keyboard shortcuts</p>
-                        </div>
-                    </div>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-primary)]">
+                    <h3 id="how-it-works-title" className="text-base font-semibold text-[var(--text-primary)]">
+                        Help
+                    </h3>
                     <button
                         onClick={handleClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                        className="p-1.5 -mr-1 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ scrollbarGutter: 'stable' }}>
-                    {/* Quick Start Steps */}
-                    <div>
-                        <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Quick Start</h4>
-                        <div className="space-y-3">
-                            <div className="flex gap-3">
-                                <div className="w-5 h-5 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-[10px] font-bold text-[var(--accent)] shrink-0">1</div>
-                                <p className="text-sm text-[var(--text-secondary)]">Select your distro from the dropdown</p>
-                            </div>
-                            <div className="flex gap-3">
-                                <div className="w-5 h-5 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-[10px] font-bold text-[var(--accent)] shrink-0">2</div>
-                                <p className="text-sm text-[var(--text-secondary)]">Check the apps you want to install</p>
-                            </div>
-                            <div className="flex gap-3">
-                                <div className="w-5 h-5 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-[10px] font-bold text-[var(--accent)] shrink-0">3</div>
-                                <p className="text-sm text-[var(--text-secondary)]">Copy the command or download the script</p>
-                            </div>
-                            <div className="flex gap-3">
-                                <div className="w-5 h-5 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-[10px] font-bold text-[var(--accent)] shrink-0">4</div>
-                                <p className="text-sm text-[var(--text-secondary)]">Paste in terminal (<code className="text-xs bg-[var(--bg-tertiary)] px-1 py-0.5 rounded">Ctrl+Shift+V</code>) and run</p>
-                            </div>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6" style={{ scrollbarGutter: 'stable' }}>
+
+                    {/* Shortcuts */}
+                    <section>
+                        <h4 className="text-sm font-medium text-[var(--text-primary)] mb-4">Keyboard Shortcuts</h4>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                            {[
+                                ['↑↓←→', 'Navigate through apps'],
+                                ['hjkl', 'Vim-style navigation'],
+                                ['Space', 'Select or deselect app'],
+                                ['/', 'Focus search box'],
+                                ['y', 'Copy install command'],
+                                ['d', 'Download install script'],
+                                ['c', 'Clear all selections'],
+                                ['t', 'Toggle light/dark theme'],
+                                ['Tab', 'Preview current selection'],
+                                ['Esc', 'Close this modal'],
+                                ['?', 'Show this help'],
+                                ['1 / 2', 'Switch AUR helper (yay/paru)'],
+                            ].map(([key, desc]) => (
+                                <div key={key} className="flex items-center gap-3 text-sm">
+                                    <kbd className="inline-flex items-center justify-center min-w-[52px] px-2 py-1 rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-primary)] text-xs font-mono text-[var(--text-secondary)]">
+                                        {key}
+                                    </kbd>
+                                    <span className="text-[var(--text-muted)]">{desc}</span>
+                                </div>
+                            ))}
                         </div>
-                    </div>
+                    </section>
 
-                    {/* Unavailable Apps */}
-                    <div className="pt-3 border-t border-[var(--border-primary)]">
-                        <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">App Not Available?</h4>
-                        <div className="space-y-2.5 text-xs text-[var(--text-muted)] leading-relaxed">
-                            <p>Greyed-out apps aren&apos;t in your distro&apos;s repos. Here&apos;s what you can do:</p>
-                            <ul className="space-y-2 ml-2">
-                                <li className="flex gap-2">
-                                    <span className="text-[var(--accent)]">•</span>
-                                    <span><strong className="text-[var(--text-secondary)]">Use Flatpak/Snap:</strong> Switch to Flatpak or Snap in the distro selector for universal packages</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-[var(--accent)]">•</span>
-                                    <span><strong className="text-[var(--text-secondary)]">Download from website:</strong> Visit the app&apos;s official site and grab the <code className="bg-[var(--bg-tertiary)] px-1 rounded">.deb</code>, <code className="bg-[var(--bg-tertiary)] px-1 rounded">.rpm</code>, or <code className="bg-[var(--bg-tertiary)] px-1 rounded">.AppImage</code></span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-[var(--accent)]">•</span>
-                                    <span><strong className="text-[var(--text-secondary)]">Hover the ⓘ icon:</strong> Some unavailable apps show links to alternative download methods</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+                    {/* Getting Started */}
+                    <section>
+                        <h4 className="text-sm font-medium text-[var(--text-primary)] mb-3">Getting Started</h4>
+                        <ol className="space-y-2 text-sm text-[var(--text-muted)] leading-relaxed">
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">1. Pick your distro</strong> — Select your Linux distribution from the dropdown at the top. This determines which package manager commands TuxMate generates for you.
+                            </li>
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">2. Select apps</strong> — Browse the categories and click on apps to add them to your selection. Selected apps are highlighted. Use keyboard shortcuts to navigate faster.
+                            </li>
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">3. Copy or download</strong> — Copy the generated install command to your clipboard, or download a complete shell script. Downloaded scripts include error handling and can install multiple apps at once.
+                            </li>
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">4. Run in terminal</strong> — Open your terminal, paste the command (Ctrl+Shift+V), and press Enter. The script will handle the rest.
+                            </li>
+                        </ol>
+                    </section>
 
-                    {/* Arch & AUR */}
-                    <div className="pt-3 border-t border-[var(--border-primary)]">
-                        <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Arch Linux &amp; AUR</h4>
-                        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                            Some Arch packages are in the <strong className="text-[var(--text-secondary)]">AUR</strong> (Arch User Repository).
-                            TuxMate uses <code className="bg-[var(--bg-tertiary)] px-1 rounded">yay</code> or <code className="bg-[var(--bg-tertiary)] px-1 rounded">paru</code> to install these.
-                            When selecting AUR packages, a popup will ask which helper you have. You can switch between helpers anytime using <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] rounded text-[10px]">1</kbd> (yay) or <kbd className="px-1 py-0.5 bg-[var(--bg-tertiary)] rounded text-[10px]">2</kbd> (paru).
-                        </p>
-                    </div>
-
-                    {/* Keyboard Shortcuts */}
-                    <div className="pt-3 border-t border-[var(--border-primary)]">
-                        <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Keyboard Shortcuts</h4>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">↑↓←→</kbd>
-                                <span className="text-[var(--text-muted)]">Navigate</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">hjkl</kbd>
-                                <span className="text-[var(--text-muted)]">Vim navigation</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">Space</kbd>
-                                <span className="text-[var(--text-muted)]">Toggle selection</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">/</kbd>
-                                <span className="text-[var(--text-muted)]">Search apps</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">y</kbd>
-                                <span className="text-[var(--text-muted)]">Copy command</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">d</kbd>
-                                <span className="text-[var(--text-muted)]">Download script</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">c</kbd>
-                                <span className="text-[var(--text-muted)]">Clear selection</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">t</kbd>
-                                <span className="text-[var(--text-muted)]">Toggle theme</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">Tab</kbd>
-                                <span className="text-[var(--text-muted)]">Open preview</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">Esc</kbd>
-                                <span className="text-[var(--text-muted)]">Close popups</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <kbd className="px-1.5 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded text-[10px] font-mono">?</kbd>
-                                <span className="text-[var(--text-muted)]">This help</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pro Tips */}
-                    <div className="pt-3 border-t border-[var(--border-primary)]">
-                        <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Pro Tips</h4>
-                        <ul className="space-y-2 text-xs text-[var(--text-muted)] leading-relaxed">
-                            <li className="flex gap-2">
-                                <span className="text-emerald-500">💡</span>
-                                <span>The <strong className="text-[var(--text-secondary)]">download button</strong> gives you a full shell script with progress tracking, error handling, and a summary</span>
+                    {/* Notes */}
+                    <section>
+                        <h4 className="text-sm font-medium text-[var(--text-primary)] mb-3">Good to Know</h4>
+                        <ul className="space-y-2 text-sm text-[var(--text-muted)] leading-relaxed">
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">Greyed out apps</strong> aren&apos;t available in your distro&apos;s official repositories. Try switching to Flatpak or Snap in the dropdown, or hover the info icon next to the app for alternative installation methods.
                             </li>
-                            <li className="flex gap-2">
-                                <span className="text-emerald-500">💡</span>
-                                <span>
-                                    <strong className="text-[var(--text-secondary)]">Running the script:</strong>{' '}
-                                    <code className="bg-[var(--bg-tertiary)] px-1 rounded">chmod +x tuxmate-*.sh && ./tuxmate-*.sh</code> or{' '}
-                                    <code className="bg-[var(--bg-tertiary)] px-1 rounded">bash tuxmate-*.sh</code>
-                                </span>
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">Arch Linux users</strong> — Some packages come from the AUR. TuxMate uses yay or paru as the AUR helper. Press 1 or 2 anytime to switch between them.
                             </li>
-                            <li className="flex gap-2">
-                                <span className="text-emerald-500">💡</span>
-                                <span>Your selections are <strong className="text-[var(--text-secondary)]">saved automatically</strong> — come back anytime to modify your setup</span>
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">Auto-save</strong> — Your app selections are saved automatically in your browser. Come back anytime and your selections will still be there.
                             </li>
-                            <li className="flex gap-2">
-                                <span className="text-emerald-500">💡</span>
-                                <span>Running <code className="bg-[var(--bg-tertiary)] px-1 rounded">.deb</code> files: <code className="bg-[var(--bg-tertiary)] px-1 rounded">sudo dpkg -i file.deb</code></span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-emerald-500">💡</span>
-                                <span>Running <code className="bg-[var(--bg-tertiary)] px-1 rounded">.rpm</code> files: <code className="bg-[var(--bg-tertiary)] px-1 rounded">sudo dnf install ./file.rpm</code></span>
+                            <li>
+                                <strong className="text-[var(--text-secondary)]">Running scripts</strong> — Downloaded scripts are saved as <code className="px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-xs font-mono">tuxmate-*.sh</code>. Run them with <code className="px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-xs font-mono">bash tuxmate-*.sh</code>
                             </li>
                         </ul>
-                    </div>
+                    </section>
                 </div>
             </div>
         </>

@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { Check, Package } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { distros, type DistroId, type AppData } from '@/lib/data';
 import { analytics } from '@/lib/analytics';
 import { isAurPackage } from '@/lib/aur';
@@ -95,6 +95,7 @@ export const AppItem = memo(function AppItem({
                     {app.name}
                 </span>
                 {isAur && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src="https://api.iconify.design/simple-icons/archlinux.svg?color=%231793d1"
                         className="ml-1.5 w-3 h-3 flex-shrink-0 opacity-80"

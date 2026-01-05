@@ -34,7 +34,13 @@ const themeScript = `
   (function() {
     try {
       var theme = localStorage.getItem('theme');
-      if (theme === 'light' || !theme) {
+      var isDark = false;
+      if (theme) {
+        isDark = theme === 'dark';
+      } else {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      if (!isDark) {
         document.documentElement.classList.add('light');
       }
     } catch (e) {}

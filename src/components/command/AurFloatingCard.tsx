@@ -16,7 +16,6 @@ interface AurFloatingCardProps {
 export function AurFloatingCard({
     show,
     aurAppNames,
-    hasYayInstalled,
     setHasYayInstalled,
     selectedHelper,
     setSelectedHelper,
@@ -34,6 +33,7 @@ export function AurFloatingCard({
     // Reset when new AUR packages appear, BUT ONLY if user hasn't interacted yet
     useEffect(() => {
         if (show && aurAppNames.length > 0 && !userInteractedRef.current) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDismissed(false);
             setIsExiting(false);
             setShowConfirmation(false);
@@ -70,10 +70,6 @@ export function AurFloatingCard({
             setDismissed(true);
             setIsExiting(false);
         }, 200);
-    };
-
-    const handleConfirmationDismiss = () => {
-        setDismissed(true);
     };
 
     // Show confirmation message after selecting helper, auto-dismiss after 3s

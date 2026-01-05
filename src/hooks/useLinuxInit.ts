@@ -54,6 +54,7 @@ export function useLinuxInit(): UseLinuxInitReturn {
             const savedHelper = localStorage.getItem(STORAGE_KEY_HELPER) as 'yay' | 'paru' | null;
 
             if (savedDistro && distros.some(d => d.id === savedDistro)) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setSelectedDistroState(savedDistro);
             }
 
@@ -76,7 +77,7 @@ export function useLinuxInit(): UseLinuxInitReturn {
             if (savedHelper === 'paru') {
                 setSelectedHelper('paru');
             }
-        } catch (e) {
+        } catch {
             // Ignore localStorage errors
         }
         setHydrated(true);
@@ -90,7 +91,7 @@ export function useLinuxInit(): UseLinuxInitReturn {
             localStorage.setItem(STORAGE_KEY_APPS, JSON.stringify([...selectedApps]));
             localStorage.setItem(STORAGE_KEY_YAY, hasYayInstalled.toString());
             localStorage.setItem(STORAGE_KEY_HELPER, selectedHelper);
-        } catch (e) {
+        } catch {
             // Ignore localStorage errors
         }
     }, [selectedDistro, selectedApps, hasYayInstalled, selectedHelper, hydrated]);

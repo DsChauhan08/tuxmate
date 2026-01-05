@@ -18,6 +18,7 @@ export function DistroIcon({ url, name, size = 20 }: { url: string; name: string
     }
 
     return (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
             src={url}
             alt=""
