@@ -90,7 +90,7 @@ command -v brew &>/dev/null || {
 }
 
 if [ "$IS_MACOS" = true ]; then
-    info "Detected macOS - casks enabled"
+    info "Detected macOS"
 else
     info "Detected Linux - formulae only (casks will be skipped)"
 fi
