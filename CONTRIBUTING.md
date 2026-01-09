@@ -13,6 +13,7 @@ Thank you for your interest in contributing! This guide ensures high-quality, er
 - ❌ Use partial Flatpak IDs instead of full App IDs
 - ❌ Forget `--classic` for Snap packages that require it
 - ❌ Include PPAs or unofficial repos for apt packages
+- ❌ Incorrect Homebrew format (GUI apps require `'--cask name'` with a space separator)
 
 ---
 
@@ -35,6 +36,8 @@ All applications are defined in [`src/lib/data.ts`](src/lib/data.ts).
 | **NixOS** | Nix packages | [search.nixos.org](https://search.nixos.org/packages) |
 | **Flathub** | Flatpak apps (get the App ID!) | [flathub.org](https://flathub.org/) |
 | **Snapcraft** | Snap packages | [snapcraft.io](https://snapcraft.io/) |
+| **Homebrew Formulae** | CLI tools (works on macOS + Linux) | [formulae.brew.sh](https://formulae.brew.sh/) |
+| **Homebrew Casks** | GUI apps (macOS only) | [formulae.brew.sh/cask](https://formulae.brew.sh/cask/) |
 
 ---
 
@@ -56,6 +59,7 @@ All applications are defined in [`src/lib/data.ts`](src/lib/data.ts).
     nix: 'exact-package-name',         // nix package
     flatpak: 'com.vendor.AppId',       // FULL Flatpak App ID (reverse DNS)
     snap: 'snap-name',                 // Add --classic if needed
+    homebrew: 'formula-name',          // Formula (CLI) or '--cask cask-name' (GUI)
   },
   unavailableReason?: 'Markdown install instructions'
 }
@@ -117,6 +121,39 @@ Some snaps require `--classic` flag. Check [snapcraft.io](https://snapcraft.io/)
 |----------|--------|
 | Regular snap | `'snap-name'` |
 | Classic confinement | `'snap-name --classic'` |
+
+#### Homebrew: Formulae vs Casks
+
+Homebrew has two types of packages:
+
+| Type | What It Is | Platform | Format in `targets` |
+|------|-----------|----------|--------------------|
+| **Formula** | CLI tools, libraries | macOS + Linux | `'package-name'` |
+| **Cask** | GUI applications (.app) | macOS only | `'--cask package-name'` |
+
+**Examples:**
+
+| App | Type | Correct Format |
+|-----|------|----------------|
+| Git | Formula (CLI) | `homebrew: 'git'` |
+| Node.js | Formula (CLI) | `homebrew: 'node'` |
+| Python | Formula (versioned) | `homebrew: 'python@3.12'` |
+| Firefox | Cask (GUI) | `homebrew: '--cask firefox'` |
+| VS Code | Cask (GUI) | `homebrew: '--cask visual-studio-code'` |
+| Discord | Cask (GUI) | `homebrew: '--cask discord'` |
+| VLC | Cask (GUI) | `homebrew: '--cask vlc'` |
+
+**How to verify package names:**
+
+1. **Formulae**: Search [formulae.brew.sh](https://formulae.brew.sh/) or run `brew search <name>`
+2. **Casks**: Search [formulae.brew.sh/cask](https://formulae.brew.sh/cask/) or run `brew search --cask <name>`
+3. Check the exact name on the package page (e.g., `visual-studio-code` not `vscode`)
+
+**Important notes:**
+- Casks are **macOS-only** — the generated script will skip them on Linux
+- Always prefix GUI apps with `--cask ` (note the space after)
+- Some apps exist as both formula AND cask (e.g., `emacs` formula vs `emacs-app` cask) — choose based on user expectation
+- For versioned packages, use the explicit version: `python@3.12`, `node@20`
 
 ---
 
@@ -220,6 +257,7 @@ TuxMate uses the [Iconify API](https://iconify.design/) for icons. Icon helpers 
 - [ ] Ubuntu/Debian packages are in **Main/Universe only** (no PPAs)
 - [ ] Flatpak uses **full App ID** from [Flathub](https://flathub.org/)
 - [ ] Snap packages checked for `--classic` requirement
+- [ ] Homebrew uses correct format: `'formula'` for CLI, `'--cask name'` for GUI apps
 
 ### Code Quality
 - [ ] Tested locally with `npm run dev`
@@ -232,69 +270,128 @@ TuxMate uses the [Iconify API](https://iconify.design/) for icons. Icon helpers 
 
 ---
 
-## 📝 PR Description Template
+## 📝 Pull Request Template
 
-Include this in your PR description:
+Use the following template when submitting a pull request:
 
 ```markdown
-## Apps Added/Modified
-- App Name 1
-- App Name 2
+## Summary
 
-## Verification URLs
-Paste the direct links to the package pages you checked:
+Brief description of changes made.
 
-- **Repology**: [link]
-- **Arch/AUR**: [link]
-- **Ubuntu/Debian**: [link]  
-- **Fedora**: [link]
-- **OpenSUSE**: [link]
-- **NixOS**: [link]
-- **Flathub**: [link]
-- **Snapcraft**: [link]
+## Changes
 
-## Checklist
-- [ ] All package names verified on official sources
-- [ ] Tested locally with `npm run dev`
-- [ ] Build passes: `npm run build`
+### Apps Added
+| App Name | Category | Package Sources |
+|----------|----------|-----------------|
+| Example App | Dev: Tools | apt, pacman, flatpak, homebrew |
+
+### Apps Modified
+- `app-id`: Description of change
+
+## Verification
+
+> All package names have been verified against official sources.
+
+| Source | Verification Link |
+|--------|-------------------|
+| Repology | [repology.org/project/...](https://repology.org/) |
+| Arch Linux | [archlinux.org/packages/...](https://archlinux.org/packages/) |
+| AUR | [aur.archlinux.org/packages/...](https://aur.archlinux.org/) |
+| Ubuntu | [packages.ubuntu.com/...](https://packages.ubuntu.com/) |
+| Fedora | [packages.fedoraproject.org/...](https://packages.fedoraproject.org/) |
+| openSUSE | [software.opensuse.org/...](https://software.opensuse.org/) |
+| NixOS | [search.nixos.org/packages/...](https://search.nixos.org/packages) |
+| Flathub | [flathub.org/apps/...](https://flathub.org/) |
+| Snapcraft | [snapcraft.io/...](https://snapcraft.io/) |
+| Homebrew | [formulae.brew.sh/...](https://formulae.brew.sh/) |
+
+## Testing
+
+- [ ] `npm run dev` — Local development server works
+- [ ] `npm run build` — Production build passes
+- [ ] `npm run lint` — No linting errors
+- [ ] `npm run test` — All unit tests pass
+- [ ] Verified in browser — UI renders correctly
+
+## Screenshots (if applicable)
+
+<!-- Add screenshots for UI changes -->
 ```
 
 ---
 
 ## 💻 Development Workflow
 
-### Setup
+### Initial Setup
+
 ```bash
+# Clone the repository
 git clone https://github.com/abusoww/tuxmate.git
 cd tuxmate
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-### Before Committing
+The development server will be available at `http://localhost:5173`.
+
+### Quality Assurance
+
+Run these commands before every commit:
+
+| Command | Purpose |
+|---------|---------|
+| `npm run lint` | Check for code style issues |
+| `npm run lint -- --fix` | Auto-fix linting errors |
+| `npm run test` | Run unit test suite |
+| `npm run build` | Verify production build |
+
+### Branch Naming Convention
+
+| Type | Format | Example |
+|------|--------|---------|
+| New feature | `feature/description` | `feature/add-homebrew-support` |
+| Bug fix | `fix/description` | `fix/arch-aur-detection` |
+| Documentation | `docs/description` | `docs/update-contributing` |
+| Refactor | `refactor/description` | `refactor/script-generation` |
+
+### Commit Message Format
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+
+| Type | Description |
+|------|-------------|
+| `feat` | New feature or functionality |
+| `fix` | Bug fix |
+| `docs` | Documentation changes |
+| `style` | Code style (formatting, no logic change) |
+| `refactor` | Code restructuring (no feature change) |
+| `test` | Adding or updating tests |
+| `chore` | Maintenance tasks |
+
+**Examples:**
+
 ```bash
-npm run lint          # Check for errors
-npm run lint -- --fix # Auto-fix issues
-npm run test          # Run unit tests
-npm run build         # Verify production build
-```
+feat(data): add Homebrew support for 50+ apps
 
-### Branch Naming
-```
-feature/add-app-name
-feature/add-distro-name  
-fix/description-of-fix
-docs/update-readme
-```
+fix(scripts): correct AUR package detection for -git suffix
 
-### Commit Format
+docs(contributing): add Homebrew verification guidelines
 ```
-type: short description
-
-- Details if needed
-- Fixes #123
-```
-Types: `feat` `fix` `docs` `style` `refactor` `test` `chore`
 
 ---
 
@@ -341,31 +438,70 @@ src/lib/
     ├── opensuse.ts             # openSUSE zypper
     ├── nix.ts                  # Nix package manager
     ├── flatpak.ts              # Flatpak (parallel install)
-    └── snap.ts                 # Snap packages
+    ├── snap.ts                 # Snap packages
+    └── homebrew.ts             # Homebrew (formulae + casks)
 ```
 
-### Key Features to Maintain
-- **Package detection** - Skip already-installed packages
-- **AUR handling** - Auto-install `yay` helper (see `aur.ts` for patterns)
-- **RPM Fusion** - Auto-enable for Fedora when needed
-- **Parallel installation** - Flatpak concurrent installs
-- **Network retry** - Exponential backoff for failures
-- **Progress bars** - ETA with colored output
-- **Shell escaping** - Security against injection (see `escapeShellString()` in `shared.ts`)
+### Script Generator Features
+
+Each script generator implements these core capabilities:
+
+| Feature | Description | Implementation |
+|---------|-------------|----------------|
+| **Package Detection** | Skip already-installed packages | Distro-specific checks (e.g., `dpkg -l`, `brew list`) |
+| **AUR Handling** | Auto-install `yay`/`paru` helper for Arch | See [`aur.ts`](src/lib/aur.ts) for detection patterns |
+| **RPM Fusion** | Auto-enable repos for Fedora multimedia | Enabled when proprietary codecs needed |
+| **Parallel Install** | Concurrent package installation | Flatpak uses background jobs for speed |
+| **Network Retry** | Exponential backoff on failures | `with_retry()` in [`shared.ts`](src/lib/scripts/shared.ts) |
+| **Progress UI** | Colored output with ETA | Progress bars, timing, summary |
+| **Shell Escaping** | Prevent command injection | `escapeShellString()` in [`shared.ts`](src/lib/scripts/shared.ts) |
+| **Homebrew Casks** | Platform-aware formula/cask handling | Separate commands, skip casks on Linux |
 
 ### Testing Script Changes
+
+#### Automated Testing
+
 ```bash
-# Run unit tests (shell escaping, AUR detection)
+# Run the full test suite
 npm run test
 
-# Generate and test a script
-npm run dev
-# Select packages → Copy script → Test in VM/container
+# Run tests in watch mode during development
+npm run test -- --watch
 
-# Quick testing with Docker
-docker run -it archlinux bash
-docker run -it ubuntu bash
+# Run specific test file
+npm run test -- src/__tests__/aur.test.ts
 ```
+
+#### Manual Testing Workflow
+
+| Step | Action | Purpose |
+|------|--------|---------|
+| 1 | `npm run dev` | Start development server |
+| 2 | Select test packages | Choose mix of package types |
+| 3 | Copy generated script | Use "Copy" button |
+| 4 | Test in isolated environment | VM or container (see below) |
+| 5 | Verify installation | Check packages installed correctly |
+
+#### Container Testing
+
+Use Docker containers for safe, isolated testing:
+
+```bash
+# Arch Linux
+docker run -it --rm archlinux:latest bash -c "pacman -Sy && bash"
+
+# Ubuntu
+docker run -it --rm ubuntu:latest bash -c "apt update && bash"
+
+# Fedora  
+docker run -it --rm fedora:latest bash -c "dnf check-update; bash"
+
+# Debian
+docker run -it --rm debian:latest bash -c "apt update && bash"
+```
+
+> [!TIP]
+> For Homebrew testing, use a macOS environment or [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux).
 
 ---
 
