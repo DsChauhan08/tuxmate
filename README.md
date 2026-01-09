@@ -247,14 +247,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ### Planned
 
 - [ ] Winget support (Windows)
-- [ ] Save custom presets / profiles
+- [ ] Custom presets / profiles
 - [ ] Share configurations via URL
-- [ ] More distros (Gentoo, Void, Alpine)
+- [ ] More distros (FreeBSD, Gentoo, Void, Alpine)
+- [ ] Nix configuration.nix download
+- [ ] i18n / Multi-language support
 - [ ] Companion CLI tool
 - [ ] Expand application catalog (200+)
 - [ ] Dotfiles integration
-- [ ] Nix configuration.nix download
-- [ ] i18n / Multi-language support
+
 
 <details>
 <summary><h4>🔗 Related Projects</h4></summary>
