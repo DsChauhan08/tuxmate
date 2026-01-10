@@ -66,6 +66,9 @@ export function Tooltip({ tooltip, onMouseEnter, onMouseLeave, setRef }: Tooltip
         });
     };
 
+    const isRightAnchored = typeof window !== 'undefined' && (current.x + 300 > window.innerWidth);
+    const contentTransform = isRightAnchored ? 'translateX(-278px)' : 'translateX(-22px)';
+
     return (
         <div
             ref={setRef}
@@ -89,7 +92,7 @@ export function Tooltip({ tooltip, onMouseEnter, onMouseLeave, setRef }: Tooltip
                         backgroundColor: 'var(--bg-secondary)',
                         borderLeftColor: 'var(--accent)',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                        transform: 'translateX(-22px)', // Shift tooltip so arrow aligns with mouse (arrow is at left: 16px + half width)
+                        transform: contentTransform, // Shift tooltip so arrow aligns with mouse
                     }}
                 >
                     <p className="text-[13px] leading-[1.55] text-[var(--text-secondary)] break-words" style={{ wordBreak: 'break-word' }}>
