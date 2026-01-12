@@ -25,13 +25,12 @@ interface CommandFooterProps {
     clearAll: () => void;
     selectedHelper: 'yay' | 'paru';
     setSelectedHelper: (helper: 'yay' | 'paru') => void;
+    // Nix unfree
+    hasUnfreePackages?: boolean;
+    unfreeAppNames?: string[];
 }
 
-/**
- * The sticky footer that shows the generated command and action buttons.
- * Contains more state than I'd like, but hey, it works.
- * Keyboard shortcuts are vim-style because we're not savages.
- */
+
 export function CommandFooter({
     command,
     selectedCount,
@@ -47,6 +46,8 @@ export function CommandFooter({
     clearAll,
     selectedHelper,
     setSelectedHelper,
+    hasUnfreePackages,
+    unfreeAppNames,
 }: CommandFooterProps) {
     const [copied, setCopied] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -56,7 +57,7 @@ export function CommandFooter({
 
     const { toggle: toggleTheme } = useTheme();
 
-    // Track if user has actually interacted - we hide the bar until then.
+    // Track if user has actually interacted - hide the bar until then.
     // Otherwise it just sits there looking sad with "No apps selected".
     useEffect(() => {
         if (selectedCount !== initialCountRef.current && !hasEverHadSelection) {
@@ -103,11 +104,14 @@ export function CommandFooter({
             selectedAppIds: selectedApps,
             helper: selectedHelper,
         });
-        const blob = new Blob([script], { type: 'text/x-shellscript' });
+        const isNix = selectedDistro === 'nix';
+        const ext = isNix ? 'nix' : 'sh';
+        const mimeType = isNix ? 'text/plain' : 'text/x-shellscript';
+        const blob = new Blob([script], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `tuxmate-${selectedDistro}.sh`;
+        a.download = isNix ? 'configuration.nix' : `tuxmate-${selectedDistro}.sh`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         const distroName = distros.find(d => d.id === selectedDistro)?.name || selectedDistro;
@@ -182,6 +186,9 @@ export function CommandFooter({
                 selectedHelper={selectedHelper}
                 setSelectedHelper={setSelectedHelper}
                 distroColor={distroColor}
+                distroId={selectedDistro}
+                hasUnfreePackages={hasUnfreePackages}
+                unfreeAppNames={unfreeAppNames}
             />
 
             {/* Animated footer container - only shows after first selection */}

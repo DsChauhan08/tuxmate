@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Check, Copy, X, Download } from 'lucide-react';
+import { Check, Copy, X, Download, AlertTriangle } from 'lucide-react';
 import { AurDrawerSettings } from './AurDrawerSettings';
+import type { DistroId } from '@/lib/data';
 
 interface CommandDrawerProps {
     isOpen: boolean;
@@ -21,13 +22,14 @@ interface CommandDrawerProps {
     selectedHelper: 'yay' | 'paru';
     setSelectedHelper: (helper: 'yay' | 'paru') => void;
     distroColor: string;
+    distroId: DistroId;
+    // Nix unfree warning
+    hasUnfreePackages?: boolean;
+    unfreeAppNames?: string[];
 }
 
-/**
- * Command drawer that shows the generated install command.
- * Acts as a bottom sheet on mobile (swipe to dismiss) and a centered modal on desktop.
- * If you're reading this, yes, I did spend way too much time on the animations.
- */
+// Command drawer - bottom sheet on mobile, modal on desktop.
+// Nix gets special treatment: shows config file instead of terminal command.
 export function CommandDrawer({
     isOpen,
     isClosing,
@@ -44,7 +46,11 @@ export function CommandDrawer({
     selectedHelper,
     setSelectedHelper,
     distroColor,
+    distroId,
+    hasUnfreePackages = false,
+    unfreeAppNames = [],
 }: CommandDrawerProps) {
+    const isNix = distroId === 'nix';
     // Swipe-to-dismiss for mobile users who hate tapping tiny X buttons
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -126,7 +132,9 @@ export function CommandDrawer({
                         <div className="flex items-center gap-2">
                             <div className="w-1 h-5 rounded-full" style={{ backgroundColor: distroColor }}></div>
                             <div>
-                                <h3 id="drawer-title" className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">Terminal Preview</h3>
+                                <h3 id="drawer-title" className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                                    {isNix ? 'Configuration Preview' : 'Terminal Preview'}
+                                </h3>
                                 <p className="text-xs text-[var(--text-muted)] mt-0.5">
                                     {selectedCount} apps selected
                                 </p>
@@ -154,10 +162,25 @@ export function CommandDrawer({
                         />
                     )}
 
+                    {/* Nix unfree packages warning */}
+                    {isNix && hasUnfreePackages && (
+                        <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                <div className="text-sm">
+                                    <p className="font-medium text-amber-500">Unfree packages</p>
+                                    <p className="text-[var(--text-muted)] mt-1">
+                                        {unfreeAppNames.join(', ')} require <code className="px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-xs">nixpkgs.config.allowUnfree = true</code>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Terminal preview - where the magic gets displayed */}
                     <div className="bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)] overflow-hidden shadow-sm">
                         <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-tertiary)] border-b border-[var(--border-primary)]">
-                            <span className="text-xs font-mono text-[var(--text-muted)]">bash</span>
+                            <span className="text-xs font-mono text-[var(--text-muted)]">{isNix ? 'nix' : 'bash'}</span>
 
                             {/* Desktop action buttons */}
                             <div className="hidden md:flex items-center gap-2">
@@ -166,7 +189,7 @@ export function CommandDrawer({
                                     className="h-8 px-4 flex items-center gap-2 rounded-md hover:bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all text-xs font-medium"
                                 >
                                     <Download className="w-4 h-4" />
-                                    <span>Script</span>
+                                    <span>{isNix ? 'configuration.nix' : 'Script'}</span>
                                 </button>
                                 <button
                                     onClick={handleCopyAndClose}
@@ -187,7 +210,7 @@ export function CommandDrawer({
 
                         <div className="p-4 font-mono text-sm overflow-x-auto bg-[var(--bg-secondary)]">
                             <div className="flex gap-3">
-                                <span className="select-none shrink-0 font-bold" style={{ color: distroColor }}>$</span>
+                                {!isNix && <span className="select-none shrink-0 font-bold" style={{ color: distroColor }}>$</span>}
                                 <code
                                     className="text-[var(--text-primary)] break-all whitespace-pre-wrap select-text"
                                     style={{

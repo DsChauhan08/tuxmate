@@ -38,7 +38,9 @@ export default function Home() {
         aurAppNames,
         isHydrated,
         selectedHelper,
-        setSelectedHelper
+        setSelectedHelper,
+        hasUnfreePackages,
+        unfreeAppNames,
     } = useLinuxInit();
 
     // Search state
@@ -349,6 +351,8 @@ export default function Home() {
                 clearAll={clearAll}
                 selectedHelper={selectedHelper}
                 setSelectedHelper={setSelectedHelper}
+                hasUnfreePackages={hasUnfreePackages}
+                unfreeAppNames={unfreeAppNames}
             />
         </div>
     );

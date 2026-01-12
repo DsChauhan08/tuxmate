@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { distros, apps, type DistroId } from '@/lib/data';
 import { isAurPackage } from '@/lib/aur';
+import { isUnfreePackage } from '@/lib/nixUnfree';
 
 // Re-export for backwards compatibility
 export { isAurPackage, AUR_PATTERNS, KNOWN_AUR_PACKAGES } from '@/lib/aur';
@@ -29,6 +30,9 @@ export interface UseLinuxInitReturn {
     hasAurPackages: boolean;
     aurPackageNames: string[];
     aurAppNames: string[];
+    // Nix unfree specific
+    hasUnfreePackages: boolean;
+    unfreeAppNames: string[];
     // Hydration state
     isHydrated: boolean;
 }
@@ -116,6 +120,26 @@ export function useLinuxInit(): UseLinuxInitReturn {
         });
 
         return { hasAur: aurPkgs.length > 0, packages: aurPkgs, appNames: aurAppNames };
+    }, [selectedDistro, selectedApps]);
+
+    // Compute unfree package info for Nix
+    const unfreePackageInfo = useMemo(() => {
+        if (selectedDistro !== 'nix') {
+            return { hasUnfree: false, appNames: [] as string[] };
+        }
+
+        const unfreeAppNames: string[] = [];
+        selectedApps.forEach(appId => {
+            const app = apps.find(a => a.id === appId);
+            if (app) {
+                const pkg = app.targets['nix'];
+                if (pkg && isUnfreePackage(pkg)) {
+                    unfreeAppNames.push(app.name);
+                }
+            }
+        });
+
+        return { hasUnfree: unfreeAppNames.length > 0, appNames: unfreeAppNames };
     }, [selectedDistro, selectedApps]);
 
     const isAppAvailable = useCallback((appId: string): boolean => {
@@ -206,11 +230,11 @@ export function useLinuxInit(): UseLinuxInitReturn {
 
         if (packageNames.length === 0) return '# No packages selected';
 
-        // Handle special cases for Nix and Snap
+        // Nix: show declarative config (no unfree warning in preview - that's in download)
         if (selectedDistro === 'nix') {
-            // installPrefix already ends with 'nixpkgs.' so just join packages with ' nixpkgs.'
-            const filteredPkgs = packageNames.filter(p => p.trim());
-            return `${distro.installPrefix}${filteredPkgs.join(' nixpkgs.')}`;
+            const sortedPkgs = packageNames.filter(p => p.trim()).sort();
+            const pkgList = sortedPkgs.map(p => `    ${p}`).join('\n');
+            return `environment.systemPackages = with pkgs; [\n${pkgList}\n];`;
         }
 
         if (selectedDistro === 'snap') {
@@ -280,6 +304,9 @@ export function useLinuxInit(): UseLinuxInitReturn {
         hasAurPackages: aurPackageInfo.hasAur,
         aurPackageNames: aurPackageInfo.packages,
         aurAppNames: aurPackageInfo.appNames,
+        // Nix unfree specific
+        hasUnfreePackages: unfreePackageInfo.hasUnfree,
+        unfreeAppNames: unfreePackageInfo.appNames,
         // Hydration state
         isHydrated: hydrated,
     };
