@@ -6,7 +6,7 @@ export { generateDebianScript } from './debian';
 export { generateArchScript } from './arch';
 export { generateFedoraScript } from './fedora';
 export { generateOpenSUSEScript } from './opensuse';
-export { generateNixScript } from './nix';
+export { generateNixConfig } from './nix';
 export { generateFlatpakScript } from './flatpak';
 export { generateSnapScript } from './snap';
 export { generateHomebrewScript } from './homebrew';

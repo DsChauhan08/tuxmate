@@ -9,7 +9,7 @@ import {
     generateArchScript,
     generateFedoraScript,
     generateOpenSUSEScript,
-    generateNixScript,
+    generateNixConfig,
     generateFlatpakScript,
     generateSnapScript,
     generateHomebrewScript,
@@ -21,10 +21,7 @@ interface ScriptOptions {
     helper?: 'yay' | 'paru';
 }
 
-/**
- * Generate a full install script with progress bars, error handling,
- * and all the fancy stuff. This is what gets downloaded as .sh file.
- */
+// Full install script for download. Nix gets a config file, others get shell scripts.
 export function generateInstallScript(options: ScriptOptions): string {
     const { distroId, selectedAppIds, helper = 'yay' } = options;
     const distro = distros.find(d => d.id === distroId);
@@ -40,7 +37,7 @@ export function generateInstallScript(options: ScriptOptions): string {
         case 'arch': return generateArchScript(packages, helper);
         case 'fedora': return generateFedoraScript(packages);
         case 'opensuse': return generateOpenSUSEScript(packages);
-        case 'nix': return generateNixScript(packages);
+        case 'nix': return generateNixConfig(packages);
         case 'flatpak': return generateFlatpakScript(packages);
         case 'snap': return generateSnapScript(packages);
         case 'homebrew': return generateHomebrewScript(packages);
@@ -61,7 +58,7 @@ export function generateSimpleCommand(selectedAppIds: Set<string>, distroId: Dis
         case 'arch': return `yay -S --needed --noconfirm ${pkgList}`;
         case 'fedora': return `sudo dnf install -y ${pkgList}`;
         case 'opensuse': return `sudo zypper install -y ${pkgList}`;
-        case 'nix': return `nix-env -iA ${packages.filter(p => p.pkg.trim()).map(p => `nixpkgs.${p.pkg.trim()}`).join(' ')}`;
+        case 'nix': return generateNixConfig(packages);
         case 'flatpak': return `flatpak install flathub -y ${pkgList}`;
         case 'snap':
             if (packages.length === 1) return `sudo snap install ${pkgList}`;

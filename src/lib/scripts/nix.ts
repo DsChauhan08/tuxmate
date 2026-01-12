@@ -1,55 +1,22 @@
-// Nix script - nix-env
+// Nix declarative config generator
 
-import { generateAsciiHeader, generateSharedUtils, escapeShellString, type PackageInfo } from './shared';
+import { type PackageInfo } from './shared';
+import { isUnfreePackage } from '../nixUnfree';
 
-export function generateNixScript(packages: PackageInfo[]): string {
-    return generateAsciiHeader('Nix', packages.length) + generateSharedUtils(packages.length) + `
-is_installed() { nix-env -q 2>/dev/null | grep -q "$1"; }
+export function generateNixConfig(packages: PackageInfo[]): string {
+    const validPackages = packages.filter(p => p.pkg.trim());
+    if (validPackages.length === 0) return '# No packages selected';
 
-install_pkg() {
-    local name=$1 attr=$2
-    CURRENT=$((CURRENT + 1))
-    
-    if is_installed "$attr"; then
-        skip "$name"
-        SKIPPED+=("$name")
-        return 0
-    fi
-    
-    show_progress $CURRENT $TOTAL "$name"
-    local start=$(date +%s)
-    
-    local output
-    if output=$(with_retry nix-env -iA "nixpkgs.$attr"); then
-        local elapsed=$(($(date +%s) - start))
-        update_avg_time $elapsed
-        printf "\\r\\033[K"
-        timing "$name" "$elapsed"
-        SUCCEEDED+=("$name")
-    else
-        printf "\\r\\033[K\${RED}✗\${NC} %s\\n" "$name"
-        if echo "$output" | grep -q "attribute.*not found"; then
-            echo -e "    \${DIM}Attribute not found\${NC}"
-        fi
-        FAILED+=("$name")
-    fi
-}
+    const sortedPkgs = validPackages.map(p => p.pkg.trim()).sort();
+    const packageList = sortedPkgs.map(pkg => `    ${pkg}`).join('\n');
 
-# ─────────────────────────────────────────────────────────────────────────────
+    // Add unfree warning if needed
+    const unfreePkgs = sortedPkgs.filter(pkg => isUnfreePackage(pkg));
+    const unfreeComment = unfreePkgs.length > 0
+        ? `# Unfree: ${unfreePkgs.join(', ')}\n# Requires: nixpkgs.config.allowUnfree = true;\n\n`
+        : '';
 
-command -v nix-env &>/dev/null || { error "nix-env not found"; exit 1; }
-
-info "Updating channels..."
-with_retry nix-channel --update >/dev/null && success "Updated" || warn "Update failed"
-
-echo
-info "Installing $TOTAL packages"
-echo
-
-${packages.filter(p => p.pkg.trim()).map(({ app, pkg }) => `install_pkg "${escapeShellString(app.name)}" "${pkg.trim()}"`).join('\n')}
-
-print_summary
-echo
-info "Restart your shell for new commands."
-`;
+    return `${unfreeComment}environment.systemPackages = with pkgs; [
+${packageList}
+];`;
 }
