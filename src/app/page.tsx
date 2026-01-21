@@ -7,6 +7,7 @@ import gsap from 'gsap';
 import { useLinuxInit } from '@/hooks/useLinuxInit';
 import { useTooltip } from '@/hooks/useTooltip';
 import { useKeyboardNavigation, type NavItem } from '@/hooks/useKeyboardNavigation';
+import { useVerification } from '@/hooks/useVerification';
 
 // Data
 import { categories, getAppsByCategory } from '@/lib/data';
@@ -46,6 +47,9 @@ export default function Home() {
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Verification status for Flatpak/Snap apps
+    const { isVerified, getVerificationType } = useVerification();
 
     // Handle "/" key to focus search
     useEffect(() => {
@@ -287,6 +291,8 @@ export default function Home() {
                                             categoryIndex={catIdx}
                                             onCategoryFocus={() => setFocusByItem('category', category)}
                                             onAppFocus={(appId) => setFocusByItem('app', appId)}
+                                            isVerified={isVerified}
+                                            getVerificationType={getVerificationType}
                                         />
                                     ))}
                                 </div>
@@ -326,6 +332,8 @@ export default function Home() {
                                             categoryIndex={globalIdx + catIdx}
                                             onCategoryFocus={() => setFocusByItem('category', category)}
                                             onAppFocus={(appId) => setFocusByItem('app', appId)}
+                                            isVerified={isVerified}
+                                            getVerificationType={getVerificationType}
                                         />
                                     ))}
                                 </div>
