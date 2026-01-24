@@ -183,10 +183,7 @@ function CategorySectionComponent({
     );
 }
 
-/**
- * Custom memo comparison because React's shallow compare was killing perf.
- * This is the kind of thing that makes you question your career choices.
- */
+// Custom memo comparison - React's shallow compare was killing perf
 export const CategorySection = memo(CategorySectionComponent, (prevProps, nextProps) => {
     // Always re-render if app count changes
     if (prevProps.categoryApps.length !== nextProps.categoryApps.length) return false;
@@ -203,6 +200,10 @@ export const CategorySection = memo(CategorySectionComponent, (prevProps, nextPr
     if (prevProps.focusedId !== nextProps.focusedId) return false;
     if (prevProps.focusedType !== nextProps.focusedType) return false;
     if (prevProps.categoryIndex !== nextProps.categoryIndex) return false;
+
+    // Re-render when verification functions change (Flathub data loads)
+    if (prevProps.isVerified !== nextProps.isVerified) return false;
+    if (prevProps.getVerificationSource !== nextProps.getVerificationSource) return false;
 
     // Check if selection state changed for any app in this category
     for (const app of nextProps.categoryApps) {

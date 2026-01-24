@@ -149,19 +149,15 @@ export const AppItem = memo(function AppItem({
                     />
                 )}
                 {isVerified && verificationSource && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={verificationSource === 'flathub'
-                            ? 'https://api.iconify.design/mdi/check-decagram.svg?color=%234A90D9'  // Flathub blue
-                            : 'https://api.iconify.design/mdi/check-decagram.svg?color=%2382BEA0'  // Snap green
-                        }
+                    <svg
                         className="ml-1 w-3.5 h-3.5 flex-shrink-0 opacity-90"
-                        alt="Verified"
-                        title={verificationSource === 'flathub'
-                            ? 'Verified on Flathub'
-                            : 'Verified publisher on Snap Store'
-                        }
-                    />
+                        viewBox="0 0 24 24"
+                        fill={verificationSource === 'flathub' ? '#4A90D9' : '#82BEA0'}
+                        aria-label={verificationSource === 'flathub' ? 'Verified on Flathub' : 'Verified publisher on Snap Store'}
+                    >
+                        <title>{verificationSource === 'flathub' ? 'Verified on Flathub' : 'Verified publisher on Snap Store'}</title>
+                        <path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2 3.4-1.47 3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12m-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z" />
+                    </svg>
                 )}
             </div>
             {/* Exclamation mark icon for unavailable apps */}
