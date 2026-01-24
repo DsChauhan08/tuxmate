@@ -84,9 +84,19 @@ export async function fetchFlathubVerifiedApps(): Promise<Set<string>> {
 
         while (hasMore) {
             const response = await fetch(
-                `https://flathub.org/api/v2/collection/verified?page=${page}&per_page=250`,
+                'https://flathub.org/api/v2/search',
                 {
-                    headers: { 'Accept': 'application/json' },
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: '',
+                        filter: 'verification_verified=true',
+                        page: page,
+                        hitsPerPage: 250,
+                    }),
                     signal: AbortSignal.timeout(10000),
                 }
             );
@@ -107,8 +117,8 @@ export async function fetchFlathubVerifiedApps(): Promise<Set<string>> {
             hasMore = page < data.totalPages;
             page++;
 
-            // Safety limit
-            if (page > 10) break;
+            // Safety limit (50 pages * 250 = 12,500 apps)
+            if (page > 50) break;
         }
     } catch (error) {
         console.warn('Failed to fetch Flathub verification data:', error);
