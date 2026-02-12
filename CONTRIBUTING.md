@@ -1,509 +1,88 @@
 # Contributing to TuxMate
 
-Thank you for your interest in contributing! This guide ensures high-quality, error-free contributions.
+## Quick Navigation
+
+1.  [Project Overview](#project-overview)
+2.  [Development Workflow](#development-workflow)
+    *   [Initial Setup](#initial-setup)
+    *   [Running with Docker](#running-with-docker)
+    *   [Quality Assurance](#quality-assurance)
+    *   [Verifying Install Scripts](#verifying-install-scripts)
+3.  [Adding Applications](#adding-applications)
+    *   [Research Protocol](#1-mandatory-research-protocol)
+    *   [Entry Structure](#2-entry-structure)
+    *   [Unavailable Reason](#3-unavailable-reason-guidelines)
+    *   [Platform Rules](#4-platform-specific-rules)
+        *   [Arch Linux](#arch-linux)
+        *   [NixOS](#nixos)
+        *   [Ubuntu/Debian](#ubuntudebian)
+        *   [Flatpak](#flatpak)
+        *   [Snap](#snap)
+        *   [Homebrew](#homebrew)
+    *   [Icon System](#5-icon-system)
+    *   [Valid Categories](#6-valid-categories)
+4.  [Adding Distributions](#adding-distributions)
+5.  [Pull Request Checklist](#pull-request-checklist)
+    *   [Core Principles](#core-principles)
+    *   [Verification Steps](#verification-steps)
+6.  [Templates](#templates)
+    *   [Pull Request](#pull-request-template)
+    *   [Bug Report](#issue-template-bug-report)
 
 ---
 
-## ⚠️ Before You Start
+## Project Overview
 
-**Your PR will be rejected if you:**
-- ❌ Submit unverified package names
-- ❌ Use wrong package name casing (e.g., `firefox` vs `MozillaFirefox`)
-- ❌ Put `pacman` packages in `arch` when they're AUR-only
-- ❌ Use partial Flatpak IDs instead of full App IDs
-- ❌ Forget `--classic` for Snap packages that require it
-- ❌ Include PPAs or unofficial repos for apt packages
-- ❌ Incorrect Homebrew format (GUI apps require `'--cask name'` with a space separator)
+*   `src/lib/data.ts`: Main registry for applications and distributions.
+*   `src/lib/aur-packages.json`: Whitelist for AUR packages that lack standard suffixes.
+*   `src/lib/nix-unfree.json`: Registry for unfree Nix packages.
+*   `src/lib/verified-flatpaks.json`: Auto-generated list of verified Flathub apps. **Do not edit.**
+*   `src/lib/verified-snaps.json`: Manual whitelist of verified Snap publishers.
 
 ---
 
-## 📦 Adding Applications
-
-All applications are defined in [`src/lib/data.ts`](src/lib/data.ts).
-
-### Mandatory Research Protocol
-
-**You MUST verify every package on these official sources before submitting:**
-
-| Source | What to Check | URL |
-|--------|--------------|-----|
-| **Repology** | Global package index (check first!) | `https://repology.org/project/[app-name]/versions` |
-| **Arch Linux** | Official repos (`core`, `extra`) | [archlinux.org/packages](https://archlinux.org/packages/) |
-| **AUR** | User repos (only if not in official!) | [aur.archlinux.org](https://aur.archlinux.org/) |
-| **Ubuntu/Debian** | Main/Universe repos only, **NO PPAs** | [packages.ubuntu.com](https://packages.ubuntu.com/) / [packages.debian.org](https://packages.debian.org/) |
-| **Fedora** | Official packages | [packages.fedoraproject.org](https://packages.fedoraproject.org/) |
-| **OpenSUSE** | Official packages | [software.opensuse.org](https://software.opensuse.org/) |
-| **NixOS** | Nix packages | [search.nixos.org](https://search.nixos.org/packages) |
-| **Flathub** | Flatpak apps (get the App ID!) | [flathub.org](https://flathub.org/) |
-| **Snapcraft** | Snap packages | [snapcraft.io](https://snapcraft.io/) |
-| **Homebrew Formulae** | CLI tools (works on macOS + Linux) | [formulae.brew.sh](https://formulae.brew.sh/) |
-| **Homebrew Casks** | GUI apps (macOS only) | [formulae.brew.sh/cask](https://formulae.brew.sh/cask/) |
-
----
-
-### Entry Structure
-
-```typescript
-{
-  id: 'app-id',                        // Unique, lowercase, kebab-case
-  name: 'App Name',                    // Official display name  
-  description: 'Short description',    // Max ~25 characters
-  category: 'Category',                // Must match valid categories
-  iconUrl: si('icon-slug', '#color'),  // See Icon System section
-  targets: {
-    ubuntu: 'exact-package-name',      // apt package (official repos ONLY)
-    debian: 'exact-package-name',      // apt package (official repos ONLY)
-    arch: 'exact-package-name',        // pacman OR AUR package name
-    fedora: 'exact-package-name',      // dnf package
-    opensuse: 'exact-package-name',    // zypper package (CASE SENSITIVE!)
-    nix: 'exact-package-name',         // nix package
-    flatpak: 'com.vendor.AppId',       // FULL Flatpak App ID (reverse DNS)
-    snap: 'snap-name',                 // Add --classic if needed
-    homebrew: 'formula-name',          // Formula (CLI) or '--cask cask-name' (GUI)
-  },
-  unavailableReason?: 'Markdown install instructions'
-}
-```
-
----
-
-### ⛔ Strict Rules (Read Carefully!)
-
-#### Package Name Rules
-
-| Rule | ✅ Correct | ❌ Wrong |
-|------|-----------|---------|
-| **Case sensitivity** | `MozillaFirefox` (openSUSE) | `firefox` |
-| **Exact package name** | `firefox-esr` (Debian) | `firefox` |
-| **OpenJDK versions** | `openjdk-21-jdk` (Ubuntu) | `openjdk` |
-| **Arch package** | `firefox` | `firefox-bin` (when official exists) |
-
-#### Arch Linux: `arch` vs AUR
-
-| Situation | Field to Use | Example |
-|-----------|-------------|---------|
-| Package in official repos (`core`/`extra`) | `arch: 'package'` | `arch: 'firefox'` |
-| Package NOT in official repos | `arch: 'package-bin'` | `arch: 'brave-bin'` |
-| NEVER mix both | Use only ONE | — |
-
-**How to check:**
-1. Search [archlinux.org/packages](https://archlinux.org/packages/)
-2. If found → use `arch` field
-3. If NOT found → search [aur.archlinux.org](https://aur.archlinux.org/) → use `arch` field with AUR package name
-4. Prefer `-bin` suffix packages in AUR (pre-built, faster install)
-5. **IMPORTANT**: If your AUR package name does **NOT** end in `-bin`, `-git`, or `-appimage`, you **MUST** add it to `KNOWN_AUR_PACKAGES` in [`src/lib/aur.ts`](src/lib/aur.ts) so the app knows it's from AUR.
-
-#### Ubuntu/Debian: Official Repos Only
-
-| ✅ Allowed | ❌ NOT Allowed |
-|-----------|---------------|
-| Main repository packages | PPAs |
-| Universe repository packages | Third-party repos |
-| Packages on packages.ubuntu.com | Manual .deb downloads |
-
-**If a package requires a PPA:** Leave the field empty and add install instructions to `unavailableReason`.
-
-#### Flatpak: Full App ID Required
-
-| ✅ Correct | ❌ Wrong |
-|-----------|---------|
-| `com.spotify.Client` | `spotify` |
-| `org.mozilla.firefox` | `firefox` |
-| `app.zen_browser.zen` | `zen-browser` |
-
-**How to find:** Go to [flathub.org](https://flathub.org/), search the app, copy the full App ID from the app page.
-
-#### Snap: Classic Confinement
-
-Some snaps require `--classic` flag. Check [snapcraft.io](https://snapcraft.io/) for the app and look for "classic" confinement.
-
-| App Type | Format |
-|----------|--------|
-| Regular snap | `'snap-name'` |
-| Classic confinement | `'snap-name --classic'` |
-
-#### Homebrew: Formulae vs Casks
-
-Homebrew has two types of packages:
-
-| Type | What It Is | Platform | Format in `targets` |
-|------|-----------|----------|--------------------|
-| **Formula** | CLI tools, libraries | macOS + Linux | `'package-name'` |
-| **Cask** | GUI applications (.app) | macOS only | `'--cask package-name'` |
-
-**Examples:**
-
-| App | Type | Correct Format |
-|-----|------|----------------|
-| Git | Formula (CLI) | `homebrew: 'git'` |
-| Node.js | Formula (CLI) | `homebrew: 'node'` |
-| Python | Formula (versioned) | `homebrew: 'python@3.12'` |
-| Firefox | Cask (GUI) | `homebrew: '--cask firefox'` |
-| VS Code | Cask (GUI) | `homebrew: '--cask visual-studio-code'` |
-| Discord | Cask (GUI) | `homebrew: '--cask discord'` |
-| VLC | Cask (GUI) | `homebrew: '--cask vlc'` |
-
-**How to verify package names:**
-
-1. **Formulae**: Search [formulae.brew.sh](https://formulae.brew.sh/) or run `brew search <name>`
-2. **Casks**: Search [formulae.brew.sh/cask](https://formulae.brew.sh/cask/) or run `brew search --cask <name>`
-3. Check the exact name on the package page (e.g., `visual-studio-code` not `vscode`)
-
-**Important notes:**
-- Casks are **macOS-only** — the generated script will skip them on Linux
-- Always prefix GUI apps with `--cask ` (note the space after)
-- Some apps exist as both formula AND cask (e.g., `emacs` formula vs `emacs-app` cask) — choose based on user expectation
-- For versioned packages, use the explicit version: `python@3.12`, `node@20`
-
----
-
-### Empty Fields
-
-**If a package doesn't exist in a source, leave the field empty (omit it entirely):**
-
-```typescript
-// ✅ Correct - Discord not in apt repos
-targets: {
-  arch: 'discord',
-  flatpak: 'com.discordapp.Discord',
-  snap: 'discord'
-}
-
-// ❌ Wrong - Empty strings clutter the code
-targets: {
-  ubuntu: '',
-  debian: '',
-  arch: 'discord',
-  fedora: '',
-  opensuse: '',
-  nix: '',
-  flatpak: 'com.discordapp.Discord',
-  snap: 'discord'
-}
-```
-
----
-
-### The `unavailableReason` Field
-
-Use this to provide helpful installation alternatives when an app isn't available in most package managers.
-
-**Format:** Markdown with clickable links
-
-```typescript
-// ✅ Good example
-unavailableReason: 'Not in official repos. Use [Flatpak](https://flathub.org/apps/com.example.App) or download from [example.com](https://example.com/download).'
-
-// ❌ Bad examples
-unavailableReason: 'Not available'           // No helpful info
-unavailableReason: 'Download from website'   // No link provided
-```
-
----
-
-### Valid Categories
-
-Use **exactly** one of these:
-
-```
-Web Browsers • Communication • Dev: Languages • Dev: Editors • Dev: Tools
-Terminal • CLI Tools • Media • Creative • Gaming • Office
-VPN & Network • Security • File Sharing • System
-```
-
----
-
-## 🎨 Icon System
-
-TuxMate uses the [Iconify API](https://iconify.design/) for icons. Icon helpers are defined in [`src/lib/data.ts`](src/lib/data.ts).
-
-### Helper Functions
-
-| Function | Use Case | Example |
-|----------|----------|---------|
-| `si('slug', '#color')` | Simple Icons (brands) | `si('firefox', '#FF7139')` |
-| `lo('slug')` | Logos (already colorful) | `lo('chrome')` |
-| `vs('slug')` | VS Code file icons | `vs('file-type-shell')` |
-| `mdi('slug', '#color')` | Material Design icons | `mdi('console', '#57F287')` |
-
-### Finding Icon Slugs
-
-| Source | URL | Notes |
-|--------|-----|-------|
-| **Simple Icons** | [simpleicons.org](https://simpleicons.org/) | Use lowercase slug, add hex color |
-| **Material Design** | [pictogrammers.com/library/mdi](https://pictogrammers.com/library/mdi/) | Use icon name |
-| **Iconify Search** | [icon-sets.iconify.design](https://icon-sets.iconify.design/) | Search all sets |
-| **Fallback** | — | Use `mdi('application', '#color')` |
-
-### Icon Requirements
-
-- ✅ Must be recognizable at 24×24px
-- ✅ Use [official brand colors](https://simpleicons.org) - click icon to copy hex
-- ✅ Monochrome icons (si, mdi) require a color parameter
-- ✅ Colorful icons (lo, sk, vs) don't need color
-- ❌ Don't use blurry or low-quality external URLs
-
----
-
-## 🔀 Pull Request Checklist
-
-**Before submitting, verify ALL of these:**
-
-### Package Verification
-- [ ] Checked [Repology](https://repology.org/) for global package availability
-- [ ] Verified **exact** package names on each distro's official package search
-- [ ] Confirmed case sensitivity (especially openSUSE: `MozillaFirefox`, `MozillaThunderbird`)
-- [ ] Arch packages confirmed in [official repos](https://archlinux.org/packages/) OR [AUR](https://aur.archlinux.org/)
-- [ ] Ubuntu/Debian packages are in **Main/Universe only** (no PPAs)
-- [ ] Flatpak uses **full App ID** from [Flathub](https://flathub.org/)
-- [ ] Snap packages checked for `--classic` requirement
-- [ ] Nix packages checked for unfree license (add to `KNOWN_UNFREE_PACKAGES` if needed)
-- [ ] Homebrew uses correct format: `'formula'` for CLI, `'--cask name'` for GUI apps
-
-### Code Quality
-- [ ] Tested locally with `npm run dev`
-- [ ] Production build passes: `npm run build`
-- [ ] Lint passes: `npm run lint`
-- [ ] Unit tests pass: `npm run test`
-- [ ] Apps added in **alphabetical order** within their category
-- [ ] Icons display correctly at small sizes
-
-
----
-
-## 📝 Pull Request Template
-
-Use the following template when submitting a pull request:
-
-```markdown
-## Summary
-
-Brief description of changes made.
-
-## Changes
-
-### Apps Added
-| App Name | Category | Package Sources |
-|----------|----------|-----------------|
-| Example App | Dev: Tools | apt, pacman, flatpak, homebrew |
-
-### Apps Modified
-- `app-id`: Description of change
-
-## Verification
-
-> All package names have been verified against official sources.
-
-| Source | Verification Link |
-|--------|-------------------|
-| Repology | [repology.org/project/...](https://repology.org/) |
-| Arch Linux | [archlinux.org/packages/...](https://archlinux.org/packages/) |
-| AUR | [aur.archlinux.org/packages/...](https://aur.archlinux.org/) |
-| Ubuntu | [packages.ubuntu.com/...](https://packages.ubuntu.com/) |
-| Fedora | [packages.fedoraproject.org/...](https://packages.fedoraproject.org/) |
-| openSUSE | [software.opensuse.org/...](https://software.opensuse.org/) |
-| NixOS | [search.nixos.org/packages/...](https://search.nixos.org/packages) |
-| Flathub | [flathub.org/apps/...](https://flathub.org/) |
-| Snapcraft | [snapcraft.io/...](https://snapcraft.io/) |
-| Homebrew | [formulae.brew.sh/...](https://formulae.brew.sh/) |
-
-## Testing
-
-- [ ] `npm run dev` — Local development server works
-- [ ] `npm run build` — Production build passes
-- [ ] `npm run lint` — No linting errors
-- [ ] `npm run test` — All unit tests pass
-- [ ] Verified in browser — UI renders correctly
-
-## Screenshots (if applicable)
-
-<!-- Add screenshots for UI changes -->
-```
-
----
-
-## 💻 Development Workflow
+## Development Workflow
 
 ### Initial Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/abusoww/tuxmate.git
 cd tuxmate
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
+The app will be available at `http://localhost:3000`.
 
-The development server will be available at `http://localhost:5173`.
+<a id="running-with-docker"></a>
+<details>
+<summary>Running with Docker</summary>
 
-### Quality Assurance
-
-Run these commands before every commit:
-
-| Command | Purpose |
-|---------|---------|
-| `npm run lint` | Check for code style issues |
-| `npm run lint -- --fix` | Auto-fix linting errors |
-| `npm run test` | Run unit test suite |
-| `npm run build` | Verify production build |
-
-### Branch Naming Convention
-
-| Type | Format | Example |
-|------|--------|---------|
-| New feature | `feature/description` | `feature/add-homebrew-support` |
-| Bug fix | `fix/description` | `fix/arch-aur-detection` |
-| Documentation | `docs/description` | `docs/update-contributing` |
-| Refactor | `refactor/description` | `refactor/script-generation` |
-
-### Commit Message Format
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:**
-
-| Type | Description |
-|------|-------------|
-| `feat` | New feature or functionality |
-| `fix` | Bug fix |
-| `docs` | Documentation changes |
-| `style` | Code style (formatting, no logic change) |
-| `refactor` | Code restructuring (no feature change) |
-| `test` | Adding or updating tests |
-| `chore` | Maintenance tasks |
-
-**Examples:**
+You can run the full application using the official Docker image:
 
 ```bash
-feat(data): add Homebrew support for 50+ apps
-
-fix(scripts): correct AUR package detection for -git suffix
-
-docs(contributing): add Homebrew verification guidelines
+docker run -p 3000:80 ghcr.io/abusoww/tuxmate:latest
 ```
+</details>
 
----
+<a id="quality-assurance"></a>
+<details>
+<summary>Quality Assurance</summary>
 
-## 🐧 Adding Distributions
+Always run these before pushing:
+*   `npm run lint`: Check for code style issues.
+*   `npm run test`: Run unit test suite.
+*   `npm run build`: Verify production build.
+</details>
 
-Distributions are defined in [`src/lib/data.ts`](src/lib/data.ts).
+<a id="verifying-install-scripts"></a>
+<details>
+<summary>Verifying Install Scripts</summary>
 
-### Distro Structure
-```typescript
-{
-  id: 'distro-id',
-  name: 'Display Name',
-  iconUrl: si('distro-slug', '#color'),
-  color: '#HexColor',
-  installPrefix: 'sudo pkg install -y'
-}
-```
+To verify that the *scripts generated by TuxMate* work correctly, run them in a clean container environment. This prevents messing up your local system.
 
-### After Adding a Distro
-1. Add the distro ID to the `DistroId` type in `src/lib/data.ts`
-2. Create a new script generator file: `src/lib/scripts/[distro].ts`
-3. Export the generator from `src/lib/scripts/index.ts`
-4. Add the case in `src/lib/generateInstallScript.ts` (both functions)
-5. Handle distro-specific logic (repo setup, package detection, etc.)
-6. Add `targets.[distro]` entries to relevant apps in `data.ts`
-
----
-
-## ⚙️ Script Generation
-
-Script generation is modular. Each distro has its own generator:
-
-```
-src/lib/
-├── generateInstallScript.ts    # Main entry point
-├── aur.ts                      # AUR package detection
-└── scripts/
-    ├── index.ts                # Exports all generators
-    ├── shared.ts               # Colors, progress bars, utilities
-    ├── arch.ts                 # Arch + AUR (yay)
-    ├── debian.ts               # Debian apt
-    ├── ubuntu.ts               # Ubuntu apt + PPA handling
-    ├── fedora.ts               # Fedora dnf + RPM Fusion
-    ├── opensuse.ts             # openSUSE zypper
-    ├── nix.ts                  # Nix declarative config generator
-    ├── flatpak.ts              # Flatpak (parallel install)
-    ├── snap.ts                 # Snap packages
-    └── homebrew.ts             # Homebrew (formulae + casks)
-```
-
-### Nix Unfree Packages
-
-When adding Nix packages, check if they require `allowUnfree = true`. Unfree packages are detected in [`src/lib/nixUnfree.ts`](src/lib/nixUnfree.ts).
-
-**Known unfree packages** (add new ones to `KNOWN_UNFREE_PACKAGES`):
-- Communication: `discord`, `slack`, `zoom-us`, `teams`, `skypeforlinux`
-- Browsers: `google-chrome`, `vivaldi`, `opera`
-- Media: `spotify`
-- Gaming: `steam`
-- Dev: `vscode`, `sublime-text`, `postman`, `code-cursor`, `vagrant`, JetBrains IDEs
-- Creative: `davinci-resolve`
-- Other: `obsidian`, `dropbox`, `1password`
-
-**How it works:**
-1. User selects unfree packages with Nix distro
-2. UI shows amber warning listing affected apps
-3. Downloaded `configuration.nix` includes comment with `allowUnfree` instructions
-
-### Script Generator Features
-
-Each script generator implements these core capabilities:
-
-| Feature | Description | Implementation |
-|---------|-------------|----------------|
-| **Package Detection** | Skip already-installed packages | Distro-specific checks (e.g., `dpkg -l`, `brew list`) |
-| **AUR Handling** | Auto-install `yay`/`paru` helper for Arch | See [`aur.ts`](src/lib/aur.ts) for detection patterns |
-| **RPM Fusion** | Auto-enable repos for Fedora multimedia | Enabled when proprietary codecs needed |
-| **Parallel Install** | Concurrent package installation | Flatpak uses background jobs for speed |
-| **Network Retry** | Exponential backoff on failures | `with_retry()` in [`shared.ts`](src/lib/scripts/shared.ts) |
-| **Progress UI** | Colored output with ETA | Progress bars, timing, summary |
-| **Shell Escaping** | Prevent command injection | `escapeShellString()` in [`shared.ts`](src/lib/scripts/shared.ts) |
-| **Homebrew Casks** | Platform-aware formula/cask handling | Separate commands, skip casks on Linux |
-
-### Testing Script Changes
-
-#### Automated Testing
-
-```bash
-# Run the full test suite
-npm run test
-
-# Run tests in watch mode during development
-npm run test -- --watch
-
-# Run specific test file
-npm run test -- src/__tests__/aur.test.ts
-```
-
-#### Manual Testing Workflow
-
-| Step | Action | Purpose |
-|------|--------|---------|
-| 1 | `npm run dev` | Start development server |
-| 2 | Select test packages | Choose mix of package types |
-| 3 | Copy generated script | Use "Copy" button |
-| 4 | Test in isolated environment | VM or container (see below) |
-| 5 | Verify installation | Check packages installed correctly |
-
-#### Container Testing
-
-Use Docker containers for safe, isolated testing:
+1.  Generate a script in the TuxMate UI (Dev mode).
+2.  Copy the script.
+3.  Run the corresponding distro container commands below and paste the script.
 
 ```bash
 # Arch Linux
@@ -512,34 +91,256 @@ docker run -it --rm archlinux:latest bash -c "pacman -Sy && bash"
 # Ubuntu
 docker run -it --rm ubuntu:latest bash -c "apt update && bash"
 
-# Fedora  
+# Fedora
 docker run -it --rm fedora:latest bash -c "dnf check-update; bash"
+```
+</details>
 
-# Debian
-docker run -it --rm debian:latest bash -c "apt update && bash"
+---
+
+## Adding Applications
+
+All applications are defined in [`src/lib/data.ts`](src/lib/data.ts).
+
+### 1. Mandatory Research Protocol
+
+**You MUST verify every package on these official sources before submitting:**
+
+| Source | Scope | URL |
+| :--- | :--- | :--- |
+| **Repology** | Global Index | [repology.org](https://repology.org/) |
+| **Arch Linux** | Official Repos | [archlinux.org/packages](https://archlinux.org/packages/) |
+| **AUR** | User Repo | [aur.archlinux.org](https://aur.archlinux.org/) |
+| **Debian** | Official Repos | [packages.debian.org](https://packages.debian.org/) |
+| **Ubuntu** | Official Repos | [packages.ubuntu.com](https://packages.ubuntu.com/) |
+| **Fedora** | Official Repos | [packages.fedoraproject.org](https://packages.fedoraproject.org/) |
+| **OpenSUSE** | Official Repos | [software.opensuse.org](https://software.opensuse.org/) |
+| **Nix** | Nixpkgs | [search.nixos.org](https://search.nixos.org/packages) |
+| **Flathub** | Flatpaks | [flathub.org](https://flathub.org/) |
+| **Snapcraft** | Snaps | [snapcraft.io](https://snapcraft.io/) |
+| **Homebrew** | CLI & Casks | [formulae.brew.sh](https://formulae.brew.sh/) |
+
+### 2. Entry Structure
+
+```typescript
+{
+  id: 'app-id',                        // Unique, lowercase, kebab-case
+  name: 'App Name',                    // Official display name
+  description: 'Short description',    // Max ~60 characters
+  category: 'Category',                // Must match valid categories
+  iconUrl: si('icon-slug', '#color'),  // See Icon System section
+  targets: {
+    ubuntu: 'exact-package-name',      // apt package (official repos ONLY)
+    arch: 'exact-package-name',        // pacman OR AUR package name
+    flatpak: 'com.vendor.AppId',       // FULL Flatpak App ID (reverse DNS)
+    snap: 'snap-name',                 // Add --classic if needed
+    homebrew: 'formula-name',          // Formula (CLI) or '--cask name' (GUI)
+    // ... add other distros
+  },
+  unavailableReason?: 'Markdown install instructions'
+}
 ```
 
-> [!TIP]
-> For Homebrew testing, use a macOS environment or [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux).
+### 3. Unavailable Reason Guidelines
+
+This field renders Markdown when a target is missing. It serves as the manual fallback instruction.
+
+**Requirements:**
+1.  **Actionable**: Avoid "Not available". State the alternative (e.g., "Install via Flatpak").
+2.  **Linked**: Hard-link the solution (Flathub page, upstream .deb URL, or Wiki guide).
+3.  **Format**: Use standard Markdown for links `[text](url)` and code `` `cmd` ``.
+
+**Examples:**
+
+| Status | Message | Why? |
+| :--- | :--- | :--- |
+| ❌ **Bad** | `'Not available.'` | Dead end. No solution provided. |
+| ❌ **Bad** | `'Download from website.'` | Dead end. No solution provided. |
+| ✅ **Good** | `'Not in official repos. Use the [Flatpak version](https://flathub.org/apps/com.spotify.Client) instead.'` | Directs to the preferred supported alternative. |
+| ✅ **Good** | ```'Arch requires [multilib](https://wiki.archlinux.org/title/Official_repositories#multilib) enabled: uncomment `[multilib]` in `/etc/pacman.conf`, run `sudo pacman -Syu`, then `sudo pacman -S steam`.'``` | Exact steps to enable the required repo. |
+
+### 4. Platform Specific Rules
+
+#### Arch Linux
+*   **Official Packages**: Use the package name directly if found in `core` or `extra` (e.g., `firefox`).
+*   **Automatic AUR Detection**: `src/lib/aur.ts` automatically detects suffixes `-bin`, `-git`, or `-appimage`. Use the name directly (e.g., `brave-bin`).
+*   **Manual AUR Detection**: For AUR packages without suffixes (e.g., `google-chrome`), **you must add the name to** `src/lib/aur-packages.json`.
+*   Prefer `-bin` suffix packages in AUR (pre-built, faster install)
+
+#### NixOS
+Nixpkgs requires explicit user consent for unfree software.
+1.  Check the license on [search.nixos.org](https://search.nixos.org/packages).
+2.  If the license is unfree, add it to `src/lib/nix-unfree.json` if missing.
+3.  Add the package to `data.ts` normally.
+
+#### Ubuntu/Debian
+**Strict Repository Policy**: The generation scripts do **not** enable extra repositories (like PPAs or `non-free` by default). Packages must be available in the standard enabled repositories.
+
+*   **Allowed**:
+    *   **Ubuntu**: Main, Restricted
+    *   **Debian**: Main
+*   **Prohibited**:
+    *   PPAs (Personal Package Archives).
+    *   External `.deb` URLs.
+    *   Packages requiring manual `sources.list` modification (unless detailed in `unavailableReason`).
+
+#### Flatpak
+*   **ID Format**: Always use the full **Application ID** (reverse-DNS style).
+    *   ✅ Correct: `org.mozilla.firefox`
+    *   ❌ Wrong: `firefox`
+*   **Verification**: Find the exact ID at the bottom of the app's [Flathub page](https://flathub.org/).
+*   **Note**: `verified-flatpaks.json` is auto-generated; do not edit it manually.
+
+#### Snap
+*   **Classic Confinement**: If the snap requires classic confinement (access to host system files), append `--classic`.
+    *   Example: `code --classic`
+    *   Check the install command on [snapcraft.io](https://snapcraft.io/) to confirm.
+*   **Verification**: If the publisher has a **"Verified" badge** on [Snapcraft](https://snapcraft.io/):
+    *   Add the **publisher name** to `src/lib/verified-snaps.json`.
+    *   This enables the "Verified" badge in the TuxMate UI.
+
+#### Homebrew
+Homebrew (macOS/Linux) has two package types. Check [formulae.brew.sh](https://formulae.brew.sh/) to find the correct one.
+
+*   **Formula**: Standard CLI tools and libraries.
+    *   Usage: Use the package name directly.
+    *   Example: `'wget'`, `'node'`, `'python@3.12'`
+*   **Cask**: GUI applications and large binaries (macOS only).
+    *   Usage: Prefix with `--cask ` (note the space).
+    *   Example: `'--cask firefox'`, `'--cask visual-studio-code'`
+*   **Validation**:
+    *   Run `brew search <name>` locally to confirm type.
+    *   We skip `--cask` targets on Linux installs automatically.
+
+### 5. Icon System
+
+We use [Iconify](https://iconify.design/).
+
+**Helper Functions:**
+*   `si('slug', '#color')` for **Simple Icons** (Brands).
+*   `lo('slug')` for **Logos** (Multi-colored).
+*   `mdi('name', '#color')` for **Material Design**.
+
+**External URLs Rules:**
+If an icon is missing from Iconify:
+1.  Use a **Direct SVG URL** (preferred) or high-res PNG (min 64x64).
+2.  Must be hosted on a **stable domain** (Wikimedia, GitHub Raw, Official Site).
+3.  Do not use temporary URLs or hotlink-protected sites.
+
+### 6. Valid Categories
+
+Use **exactly** one of these:
+*   Web Browsers • Communication • Media • Creative • Gaming • Office
+*   Dev: Languages • Dev: Editors • Dev: Tools
+*   Terminal • CLI Tools • VPN & Network • Security • File Sharing • System
 
 ---
 
-## 🐛 Reporting Issues
+## Adding Distributions
 
-### Bug Reports — Include:
-- Browser & OS (e.g., Firefox 120 on Arch Linux)
-- Steps to reproduce (numbered list)
-- Expected vs actual behavior
-- Console errors (F12 → Console tab)
-- Screenshots if UI-related
+Adding a new distribution involves three main steps:
 
-### Feature Requests — Include:
-- Use case and why it's needed
-- Proposed solution
-- Alternatives considered
+### 1. Register the Distribution
+Edit [`src/lib/data.ts`](src/lib/data.ts):
+1.  Add the new ID to the `DistroId` type definition.
+2.  Add a new object to the `distros` array with:
+    *   `id`: unique identifier.
+    *   `name`: Display name.
+    *   `iconUrl`: Icon for the distro selector.
+    *   `color`: Brand color.
+    *   `installPrefix`: The default command prefix (e.g., `sudo dnf install -y`).
+
+### 2. Create the Generator Script
+Create a new file `src/lib/scripts/<distroId>.ts`. This file must export a function (e.g., `generateFedoraScript`) that takes `PackageInfo[]` and returns the generated shell script string.
+*   Use helpers from `shared.ts` like `generateAsciiHeader` and `PackageInfo`.
+*   Implement logic to check if a package is already installed.
+*   Implement the installation command loop using `with_retry` for robustness.
+*   See `src/lib/scripts/fedora.ts` or `ubuntu.ts` for clean examples.
+
+### 3. Integrate the Generator
+1.  Export your new function in [`src/lib/scripts/index.ts`](src/lib/scripts/index.ts).
+2.  Import it in [`src/lib/generateInstallScript.ts`](src/lib/generateInstallScript.ts).
+3.  Add a case for your `distroId` in the `switch` statement inside `generateInstallScript`.
+4.  Also add the simple one-liner command logic in `generateSimpleCommand` within the same file.
 
 ---
 
-## ❓ Questions?
+## 🔀 Pull Request Checklist
 
-Open a [Discussion](https://github.com/abusoww/tuxmate/discussions) or create an [Issue](https://github.com/abusoww/tuxmate/issues).
+### Core Principles
+
+> [!IMPORTANT]
+> **Your PR will be rejected if you violate these rules:**
+>
+> 1.  **Verify Everything**: Submit only verified package names. Guessing is prohibited.
+> 2.  **Official First**: Use official repository packages over third-party options.
+> 3.  **No Unofficial Repos**: Do not include PPAs, COPRs, or unofficial repositories.
+> 4.  **Full IDs**: Use full IDs for Flatpaks (e.g., `org.mozilla.firefox`).
+> 5.  **Strict Casing**: Package names are case-sensitive.
+> 6.  **Link Integrity**: Ensure all links in `unavailableReason` are direct and working.
+
+### Verification Steps
+**Verify before submitting:**
+- [ ] Package names verified on official search pages (Repology, Arch, etc).
+- [ ] Case sensitivity checked (especially openSUSE).
+- [ ] Arch packages verified (Official vs AUR).
+- [ ] No PPAs used for Debian/Ubuntu; Main/Universe only.
+- [ ] Flatpak IDs are full reverse-DNS style.
+- [ ] Snap `--classic` flag verification.
+- [ ] Nix unfree packages added to JSON.
+- [ ] Homebrew Casks prefixed correctly.
+- [ ] `npm run lint` & `npm run test` passed.
+
+---
+
+## 📝 Templates
+
+### Pull Request Template
+
+```markdown
+## Summary
+Brief description of changes.
+
+## Changes
+| App Name | Category | Sources |
+|----------|----------|---------|
+| Example  | Dev: Tool| apt, pacman |
+
+## Verification
+> Package names verified against official sources.
+
+| Source | Link |
+|--------|------|
+| Repology | [Link](...) |
+| Arch | [Link](...) |
+| ... | ... |
+
+## Testing
+- [ ] `npm run dev` working
+- [ ] `npm run build` passed
+
+## Screenshots (if applicable)
+
+<!-- Add screenshots for UI changes -->
+
+```
+
+### Issue Template (Bug Report)
+
+```markdown
+## 🐛 Bug Report
+
+**Environment**:
+- OS: [e.g. Arch Linux]
+- Browser: [e.g. Firefox 120]
+
+**Steps to Reproduce**:
+1. ...
+2. ...
+
+**Details**:
+
+
+**Logs/Screenshots**:
+[Paste console logs or attach screenshots]
+```

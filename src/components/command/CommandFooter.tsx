@@ -105,7 +105,6 @@ export function CommandFooter({
             helper: selectedHelper,
         });
         const isNix = selectedDistro === 'nix';
-        const ext = isNix ? 'nix' : 'sh';
         const mimeType = isNix ? 'text/plain' : 'text/x-shellscript';
         const blob = new Blob([script], { type: mimeType });
         const url = URL.createObjectURL(blob);
