@@ -11,7 +11,7 @@ import { categories, getAppsByCategory } from '@/lib/data';
 
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { HowItWorks, GitHubLink, ContributeLink } from '@/components/header';
-import { DistroSelector } from '@/components/distro';
+import { DistroSelector, FlatpakToggle } from '@/components/distro';
 import { CategorySection } from '@/components/app';
 import { CommandFooter } from '@/components/command';
 import { Tooltip, GlobalStyles, LoadingSkeleton } from '@/components/common';
@@ -39,6 +39,9 @@ export default function Home() {
         setSelectedHelper,
         hasUnfreePackages,
         unfreeAppNames,
+        isFlatpakEnabled,
+        toggleFlatpakEnabled,
+        isFlatpakFallback,
     } = useLinuxInit();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -308,6 +311,7 @@ export default function Home() {
                             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-[var(--border-primary)]">
                                 <ThemeToggle />
                                 <DistroSelector selectedDistro={selectedDistro} onSelect={setSelectedDistro} />
+                                <FlatpakToggle enabled={isFlatpakEnabled} onToggle={toggleFlatpakEnabled} selectedDistro={selectedDistro} />
                             </div>
                         </div>
                     </div>
@@ -347,6 +351,7 @@ export default function Home() {
                                             onAppFocus={(appId) => setFocusByItem('app', appId)}
                                             isVerified={isVerified}
                                             getVerificationSource={getVerificationSource}
+                                            isFlatpakFallback={isFlatpakFallback}
                                         />
                                     ))}
                                 </div>
@@ -385,6 +390,7 @@ export default function Home() {
                                             onAppFocus={(appId) => setFocusByItem('app', appId)}
                                             isVerified={isVerified}
                                             getVerificationSource={getVerificationSource}
+                                            isFlatpakFallback={isFlatpakFallback}
                                         />
                                     ))}
                                 </div>
@@ -416,6 +422,7 @@ export default function Home() {
                 onDrawerOpen={() => setDrawerOpen(true)}
                 onDrawerClose={closeDrawer}
                 activeShortcut={activeShortcut}
+                isFlatpakEnabled={isFlatpakEnabled}
             />
         </div>
     );

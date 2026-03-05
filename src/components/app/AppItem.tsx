@@ -36,6 +36,7 @@ interface AppItemProps {
     color?: string;
     isVerified?: boolean;
     verificationSource?: 'flathub' | 'snap' | null;
+    isFlatpakFallback?: boolean;
 }
 
 export const AppItem = memo(function AppItem({
@@ -51,6 +52,7 @@ export const AppItem = memo(function AppItem({
     color = 'gray',
     isVerified = false,
     verificationSource = null,
+    isFlatpakFallback = false,
 }: AppItemProps) {
     const getUnavailableText = () => {
         const distroName = distros.find(d => d.id === selectedDistro)?.name || '';
@@ -59,7 +61,7 @@ export const AppItem = memo(function AppItem({
 
     const isAur = selectedDistro === 'arch' && app.targets?.arch && isAurPackage(app.targets.arch);
     const hexColor = COLOR_MAP[color] || COLOR_MAP['gray'];
-    const checkboxColor = isAur ? '#1793d1' : hexColor;
+    const checkboxColor = isFlatpakFallback ? '#4A90D9' : isAur ? '#1793d1' : hexColor;
 
     return (
         <div
@@ -141,6 +143,17 @@ export const AppItem = memo(function AppItem({
                         <title>{verificationSource === 'flathub' ? 'Verified on Flathub' : 'Verified publisher on Snap Store'}</title>
                         <path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.7L1 12l2.44 2.79-.34 3.7 3.61.82 1.89 3.2 3.4-1.47 3.4 1.46 1.89-3.19 3.61-.82-.34-3.69L23 12m-12.91 4.72l-3.8-3.81 1.48-1.48 2.32 2.33 5.85-5.87 1.48 1.48-7.33 7.35z" />
                     </svg>
+                )}
+                {isFlatpakFallback && (
+                    <span
+                        className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wider rounded-sm flex-shrink-0"
+                        style={{
+                            color: '#4A90D9',
+                            backgroundColor: 'color-mix(in srgb, #4A90D9, transparent 88%)',
+                        }}
+                    >
+                        flatpak
+                    </span>
                 )}
             </div>
             {!isAvailable && (

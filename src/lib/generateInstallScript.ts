@@ -1,4 +1,4 @@
-import { distros, type DistroId } from './data';
+import { distros, apps, type DistroId } from './data';
 import {
     getSelectedPackages,
     generateUbuntuScript,
@@ -16,29 +16,67 @@ interface GenerateOptions {
     distroId: DistroId;
     selectedAppIds: Set<string>;
     helper?: 'yay' | 'paru';
+    isFlatpakEnabled?: boolean;
+}
+
+const FLATPAK_ELIGIBLE_DISTROS: DistroId[] = ['ubuntu', 'debian', 'arch', 'fedora', 'opensuse'];
+
+function getFlatpakFallbackPackages(selectedAppIds: Set<string>, distroId: DistroId) {
+    return Array.from(selectedAppIds)
+        .map(id => apps.find(a => a.id === id))
+        .filter(app => {
+            if (!app) return false;
+            if (app.targets[distroId]) return false;
+            return !!app.targets['flatpak'];
+        })
+        .map(app => ({ app: app!, pkg: app!.targets['flatpak']! }));
 }
 
 export function generateInstallScript(options: GenerateOptions): string {
-    const { distroId, selectedAppIds, helper = 'yay' } = options;
+    const { distroId, selectedAppIds, helper = 'yay', isFlatpakEnabled = false } = options;
     const distro = distros.find(d => d.id === distroId);
 
     if (!distro) return '#!/bin/bash\necho "Error: Unknown distribution"\nexit 1';
 
     const packages = getSelectedPackages(selectedAppIds, distroId);
-    if (packages.length === 0) return '#!/bin/bash\necho "No packages selected"\nexit 0';
+    const flatpakFallbacks = (isFlatpakEnabled && FLATPAK_ELIGIBLE_DISTROS.includes(distroId))
+        ? getFlatpakFallbackPackages(selectedAppIds, distroId)
+        : [];
 
-    switch (distroId) {
-        case 'ubuntu': return generateUbuntuScript(packages);
-        case 'debian': return generateDebianScript(packages);
-        case 'arch': return generateArchScript(packages, helper);
-        case 'fedora': return generateFedoraScript(packages);
-        case 'opensuse': return generateOpenSUSEScript(packages);
-        case 'nix': return generateNixConfig(packages);
-        case 'flatpak': return generateFlatpakScript(packages);
-        case 'snap': return generateSnapScript(packages);
-        case 'homebrew': return generateHomebrewScript(packages);
-        default: return '#!/bin/bash\necho "Unsupported distribution"\nexit 1';
+    if (packages.length === 0 && flatpakFallbacks.length === 0) {
+        return '#!/bin/bash\necho "No packages selected"\nexit 0';
     }
+
+    let script = '';
+
+    if (packages.length > 0) {
+        switch (distroId) {
+            case 'ubuntu': script = generateUbuntuScript(packages); break;
+            case 'debian': script = generateDebianScript(packages); break;
+            case 'arch': script = generateArchScript(packages, helper); break;
+            case 'fedora': script = generateFedoraScript(packages); break;
+            case 'opensuse': script = generateOpenSUSEScript(packages); break;
+            case 'nix': script = generateNixConfig(packages); break;
+            case 'flatpak': script = generateFlatpakScript(packages); break;
+            case 'snap': script = generateSnapScript(packages); break;
+            case 'homebrew': script = generateHomebrewScript(packages); break;
+            default: script = '#!/bin/bash\necho "Unsupported distribution"\nexit 1'; break;
+        }
+    }
+
+    if (flatpakFallbacks.length > 0) {
+        const appendedSection = generateFlatpakScript(flatpakFallbacks, { isAppended: true, existingTotal: packages.length });
+        if (packages.length > 0) {
+            // Strip the final print_summary and restart message from the primary script,
+            // since the appended flatpak section will handle that.
+            script = script.replace(/\nprint_summary\n[^\n]*\n[^\n]*$/, '');
+            script += '\n' + appendedSection;
+        } else {
+            script = generateFlatpakScript(flatpakFallbacks);
+        }
+    }
+
+    return script;
 }
 
 export function generateCommandline(options: GenerateOptions): string {

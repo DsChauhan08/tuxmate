@@ -1,6 +1,17 @@
 import { generateAsciiHeader, generateSharedUtils, escapeShellString, type PackageInfo } from './shared';
 
-export function generateFlatpakScript(packages: PackageInfo[]): string {
+interface FlatpakScriptOptions {
+    isAppended?: boolean;
+    existingTotal?: number;
+}
+
+export function generateFlatpakScript(packages: PackageInfo[], options: FlatpakScriptOptions = {}): string {
+    const { isAppended = false, existingTotal = 0 } = options;
+
+    if (isAppended) {
+        return generateAppendedFlatpakSection(packages, existingTotal);
+    }
+
     return generateAsciiHeader('Flatpak', packages.length) + generateSharedUtils('flatpak', packages.length) + `
 is_installed() { flatpak list --app --columns=application 2>/dev/null | grep -Fxq "$1"; }
 
@@ -55,6 +66,70 @@ info "Installing $TOTAL packages"
 echo >&3
 
 ${packages.map(({ app, pkg }) => `install_pkg "${escapeShellString(app.name)}" "${pkg}"`).join('\n')}
+
+print_summary
+echo >&3
+info "Restart session for new apps to appear in menu." >&3
+`;
+}
+
+function generateAppendedFlatpakSection(packages: PackageInfo[], existingTotal: number): string {
+    const newTotal = existingTotal + packages.length;
+
+    return `
+# ---------------------------------------------------------------------------
+#  Flatpak fallback packages
+# ---------------------------------------------------------------------------
+
+TOTAL=${newTotal}
+
+flatpak_is_installed() { flatpak list --app --columns=application 2>/dev/null | grep -Fxq "$1"; }
+
+flatpak_install_pkg() {
+    local name=$1 appid=$2
+    CURRENT=$((CURRENT + 1))
+
+    if flatpak_is_installed "$appid"; then
+        skip "$name"
+        SKIPPED+=("$name")
+        return 0
+    fi
+
+    local start=$(date +%s)
+
+    with_retry flatpak install flathub -y "$appid" &
+    local pid=$!
+
+    if animate_progress "$name" $pid; then
+        local elapsed=$(($(date +%s) - start))
+        printf "\\r\\033[K" >&3
+        success "$name" "\${elapsed}s"
+        SUCCEEDED+=("$name")
+    else
+        printf "\\r\\033[K" >&3
+        error "$name"
+        FAILED+=("$name")
+    fi
+}
+
+command -v flatpak &>/dev/null || {
+    error "Flatpak not installed — skipping flatpak fallback packages"
+    info "Install flatpak first: sudo apt/dnf/pacman install flatpak"
+}
+
+if command -v flatpak &>/dev/null; then
+    if ! flatpak remotes 2>/dev/null | grep -q flathub; then
+        info "Adding Flathub..."
+        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo >/dev/null 2>&1
+        success "Flathub added"
+    fi
+
+    echo >&3
+    info "Installing ${packages.length} flatpak fallback packages"
+    echo >&3
+
+${packages.map(({ app, pkg }) => `    flatpak_install_pkg "${escapeShellString(app.name)}" "${pkg}"`).join('\n')}
+fi
 
 print_summary
 echo >&3

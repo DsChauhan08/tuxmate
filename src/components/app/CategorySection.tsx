@@ -26,6 +26,7 @@ interface CategorySectionProps {
     onAppFocus?: (appId: string) => void;
     isVerified?: (distro: DistroId, packageName: string) => boolean;
     getVerificationSource?: (distro: DistroId, packageName: string) => 'flathub' | 'snap' | null;
+    isFlatpakFallback?: (appId: string) => boolean;
 }
 
 const categoryColors: Record<Category, string> = {
@@ -64,6 +65,7 @@ function CategorySectionComponent({
     onAppFocus,
     isVerified,
     getVerificationSource,
+    isFlatpakFallback,
 }: CategorySectionProps) {
     const selectedInCategory = categoryApps.filter(a => selectedApps.has(a.id)).length;
     const isCategoryFocused = focusedType === 'category' && focusedId === category;
@@ -158,6 +160,7 @@ function CategorySectionComponent({
                                 ? getVerificationSource?.(selectedDistro, app.targets?.[selectedDistro] || '') || null
                                 : null
                         }
+                        isFlatpakFallback={isFlatpakFallback?.(app.id) || false}
                     />
                 ))}
             </div>
@@ -181,6 +184,7 @@ export const CategorySection = memo(CategorySectionComponent, (prevProps, nextPr
 
     if (prevProps.isVerified !== nextProps.isVerified) return false;
     if (prevProps.getVerificationSource !== nextProps.getVerificationSource) return false;
+    if (prevProps.isFlatpakFallback !== nextProps.isFlatpakFallback) return false;
 
     for (const app of nextProps.categoryApps) {
         if (prevProps.selectedApps.has(app.id) !== nextProps.selectedApps.has(app.id)) {

@@ -6,6 +6,9 @@ import { isAurPackage } from '@/lib/aur';
 import { isUnfreePackage } from '@/lib/nixUnfree';
 
 export { isAurPackage, AUR_PATTERNS, KNOWN_AUR_PACKAGES } from '@/lib/aur';
+
+const FLATPAK_ELIGIBLE_DISTROS: DistroId[] = ['ubuntu', 'debian', 'arch', 'fedora', 'opensuse'];
+
 export interface UseLinuxInitReturn {
     selectedDistro: DistroId;
     selectedApps: Set<string>;
@@ -28,18 +31,23 @@ export interface UseLinuxInitReturn {
     hasUnfreePackages: boolean;
     unfreeAppNames: string[];
     isHydrated: boolean;
+    isFlatpakEnabled: boolean;
+    toggleFlatpakEnabled: () => void;
+    isFlatpakFallback: (appId: string) => boolean;
 }
 
 const STORAGE_KEY_DISTRO = 'linuxinit_distro';
 const STORAGE_KEY_APPS = 'linuxinit_apps';
 const STORAGE_KEY_YAY = 'linuxinit_yay_installed';
 const STORAGE_KEY_HELPER = 'linuxinit_selected_helper';
+const STORAGE_KEY_FLATPAK = 'linuxinit_flatpak_enabled';
 
 export function useLinuxInit(): UseLinuxInitReturn {
     const [selectedDistro, setSelectedDistroState] = useState<DistroId>('ubuntu');
     const [selectedApps, setSelectedApps] = useState<Set<string>>(new Set());
     const [hasYayInstalled, setHasYayInstalled] = useState(false);
     const [selectedHelper, setSelectedHelper] = useState<'yay' | 'paru'>('yay');
+    const [isFlatpakEnabled, setIsFlatpakEnabled] = useState(false);
     const [hydrated, setHydrated] = useState(false);
 
     useEffect(() => {
@@ -72,6 +80,11 @@ export function useLinuxInit(): UseLinuxInitReturn {
             if (savedHelper === 'paru') {
                 setSelectedHelper('paru');
             }
+
+            const savedFlatpak = localStorage.getItem(STORAGE_KEY_FLATPAK);
+            if (savedFlatpak === 'true') {
+                setIsFlatpakEnabled(true);
+            }
         } catch {
         }
         setHydrated(true);
@@ -84,9 +97,10 @@ export function useLinuxInit(): UseLinuxInitReturn {
             localStorage.setItem(STORAGE_KEY_APPS, JSON.stringify([...selectedApps]));
             localStorage.setItem(STORAGE_KEY_YAY, hasYayInstalled.toString());
             localStorage.setItem(STORAGE_KEY_HELPER, selectedHelper);
+            localStorage.setItem(STORAGE_KEY_FLATPAK, isFlatpakEnabled.toString());
         } catch {
         }
-    }, [selectedDistro, selectedApps, hasYayInstalled, selectedHelper, hydrated]);
+    }, [selectedDistro, selectedApps, hasYayInstalled, selectedHelper, isFlatpakEnabled, hydrated]);
 
     const aurPackageInfo = useMemo(() => {
         if (selectedDistro !== 'arch') {
@@ -128,12 +142,27 @@ export function useLinuxInit(): UseLinuxInitReturn {
         return { hasUnfree: unfreeAppNames.length > 0, appNames: unfreeAppNames };
     }, [selectedDistro, selectedApps]);
 
+    const flatpakActive = isFlatpakEnabled && FLATPAK_ELIGIBLE_DISTROS.includes(selectedDistro);
+
+    const isFlatpakFallback = useCallback((appId: string): boolean => {
+        if (!flatpakActive) return false;
+        const app = apps.find(a => a.id === appId);
+        if (!app) return false;
+        const nativePkg = app.targets[selectedDistro];
+        if (nativePkg !== undefined && nativePkg !== null) return false;
+        return app.targets['flatpak'] !== undefined && app.targets['flatpak'] !== null;
+    }, [flatpakActive, selectedDistro]);
+
     const isAppAvailable = useCallback((appId: string): boolean => {
         const app = apps.find(a => a.id === appId);
         if (!app) return false;
         const packageName = app.targets[selectedDistro];
-        return packageName !== undefined && packageName !== null;
-    }, [selectedDistro]);
+        if (packageName !== undefined && packageName !== null) return true;
+        if (flatpakActive) {
+            return app.targets['flatpak'] !== undefined && app.targets['flatpak'] !== null;
+        }
+        return false;
+    }, [selectedDistro, flatpakActive]);
 
     const getPackageName = useCallback((appId: string): string | null => {
         const app = apps.find(a => a.id === appId);
@@ -145,24 +174,28 @@ export function useLinuxInit(): UseLinuxInitReturn {
         setSelectedDistroState(distroId);
         setSelectedApps(prevSelected => {
             const newSelected = new Set<string>();
+            const flatpakOk = isFlatpakEnabled && FLATPAK_ELIGIBLE_DISTROS.includes(distroId);
             prevSelected.forEach(appId => {
                 const app = apps.find(a => a.id === appId);
                 if (app) {
                     const packageName = app.targets[distroId];
                     if (packageName !== undefined && packageName !== null) {
                         newSelected.add(appId);
+                    } else if (flatpakOk && app.targets['flatpak'] !== undefined && app.targets['flatpak'] !== null) {
+                        newSelected.add(appId);
                     }
                 }
             });
             return newSelected;
         });
-    }, []);
+    }, [isFlatpakEnabled]);
 
     const toggleApp = useCallback((appId: string) => {
         const app = apps.find(a => a.id === appId);
         if (!app) return;
         const pkg = app.targets[selectedDistro];
-        if (pkg === undefined || pkg === null) return;
+        const hasFlatpakFallback = flatpakActive && app.targets['flatpak'] !== undefined && app.targets['flatpak'] !== null;
+        if ((pkg === undefined || pkg === null) && !hasFlatpakFallback) return;
 
         setSelectedApps(prev => {
             const newSet = new Set(prev);
@@ -173,17 +206,21 @@ export function useLinuxInit(): UseLinuxInitReturn {
             }
             return newSet;
         });
-    }, [selectedDistro]);
+    }, [selectedDistro, flatpakActive]);
 
     const selectAll = useCallback(() => {
         const allAvailable = apps
             .filter(app => {
                 const pkg = app.targets[selectedDistro];
-                return pkg !== undefined && pkg !== null;
+                if (pkg !== undefined && pkg !== null) return true;
+                if (flatpakActive) {
+                    return app.targets['flatpak'] !== undefined && app.targets['flatpak'] !== null;
+                }
+                return false;
             })
             .map(app => app.id);
         setSelectedApps(new Set(allAvailable));
-    }, [selectedDistro]);
+    }, [selectedDistro, flatpakActive]);
 
     const clearAll = useCallback(() => {
         setSelectedApps(new Set());
@@ -192,9 +229,13 @@ export function useLinuxInit(): UseLinuxInitReturn {
     const availableCount = useMemo(() => {
         return apps.filter(app => {
             const pkg = app.targets[selectedDistro];
-            return pkg !== undefined && pkg !== null;
+            if (pkg !== undefined && pkg !== null) return true;
+            if (flatpakActive) {
+                return app.targets['flatpak'] !== undefined && app.targets['flatpak'] !== null;
+            }
+            return false;
         }).length;
-    }, [selectedDistro]);
+    }, [selectedDistro, flatpakActive]);
 
     const generatedCommand = useMemo(() => {
         if (selectedApps.size === 0) {
@@ -204,59 +245,68 @@ export function useLinuxInit(): UseLinuxInitReturn {
         const distro = distros.find(d => d.id === selectedDistro);
         if (!distro) return '';
 
-        const packageNames: string[] = [];
+        const nativePackages: string[] = [];
+        const flatpakFallbackPackages: string[] = [];
+
         selectedApps.forEach(appId => {
             const app = apps.find(a => a.id === appId);
             if (app) {
                 const pkg = app.targets[selectedDistro];
-                if (pkg) packageNames.push(pkg);
+                if (pkg) {
+                    nativePackages.push(pkg);
+                } else if (flatpakActive && app.targets['flatpak']) {
+                    flatpakFallbackPackages.push(app.targets['flatpak']);
+                }
             }
         });
 
-        if (packageNames.length === 0) return '# No packages selected';
+        if (nativePackages.length === 0 && flatpakFallbackPackages.length === 0) return '# No packages selected';
 
-        if (selectedDistro === 'nix') {
-            const sortedPkgs = packageNames.filter(p => p.trim()).sort();
-            const pkgList = sortedPkgs.map(p => `    ${p}`).join('\n');
-            return `environment.systemPackages = with pkgs; [\n${pkgList}\n];`;
-        }
+        let cmd = '';
 
-        if (selectedDistro === 'snap') {
-            if (packageNames.length === 1) {
-                return `${distro.installPrefix} ${packageNames[0]}`;
-            }
-            return packageNames.map(p => `sudo snap install ${p}`).join(' && ');
-        }
-
-        if (selectedDistro === 'arch' && aurPackageInfo.hasAur) {
-            if (!hasYayInstalled) {
-                const helperName = selectedHelper; // yay or paru
-
-                const installHelperCmd = `sudo pacman -S --needed git base-devel && git clone https://aur.archlinux.org/${helperName}.git /tmp/${helperName} && cd /tmp/${helperName} && makepkg -si --noconfirm && cd - && rm -rf /tmp/${helperName}`;
-
-                const installCmd = `${helperName} -S --needed --noconfirm ${packageNames.join(' ')}`;
-
-                return `${installHelperCmd} && ${installCmd}`;
+        if (nativePackages.length > 0) {
+            if (selectedDistro === 'nix') {
+                const sortedPkgs = nativePackages.filter(p => p.trim()).sort();
+                const pkgList = sortedPkgs.map(p => `    ${p}`).join('\n');
+                cmd = `environment.systemPackages = with pkgs; [\n${pkgList}\n];`;
+            } else if (selectedDistro === 'snap') {
+                if (nativePackages.length === 1) {
+                    cmd = `${distro.installPrefix} ${nativePackages[0]}`;
+                } else {
+                    cmd = nativePackages.map(p => `sudo snap install ${p}`).join(' && ');
+                }
+            } else if (selectedDistro === 'arch' && aurPackageInfo.hasAur) {
+                if (!hasYayInstalled) {
+                    const helperName = selectedHelper;
+                    const installHelperCmd = `sudo pacman -S --needed git base-devel && git clone https://aur.archlinux.org/${helperName}.git /tmp/${helperName} && cd /tmp/${helperName} && makepkg -si --noconfirm && cd - && rm -rf /tmp/${helperName}`;
+                    const installCmd = `${helperName} -S --needed --noconfirm ${nativePackages.join(' ')}`;
+                    cmd = `${installHelperCmd} && ${installCmd}`;
+                } else {
+                    cmd = `${selectedHelper} -S --needed --noconfirm ${nativePackages.join(' ')}`;
+                }
+            } else if (selectedDistro === 'homebrew') {
+                const formulae = nativePackages.filter(p => !p.startsWith('--cask '));
+                const casks = nativePackages.filter(p => p.startsWith('--cask ')).map(p => p.replace('--cask ', ''));
+                const parts: string[] = [];
+                if (formulae.length > 0) parts.push(`brew install ${formulae.join(' ')}`);
+                if (casks.length > 0) parts.push(`brew install --cask ${casks.join(' ')}`);
+                cmd = parts.join(' && ') || '';
             } else {
-                return `${selectedHelper} -S --needed --noconfirm ${packageNames.join(' ')}`;
+                cmd = `${distro.installPrefix} ${nativePackages.join(' ')}`;
             }
         }
 
-        if (selectedDistro === 'homebrew') {
-            const formulae = packageNames.filter(p => !p.startsWith('--cask '));
-            const casks = packageNames.filter(p => p.startsWith('--cask ')).map(p => p.replace('--cask ', ''));
-            const parts: string[] = [];
-            if (formulae.length > 0) {
-                parts.push(`brew install ${formulae.join(' ')}`);
-            }
-            if (casks.length > 0) {
-                parts.push(`brew install --cask ${casks.join(' ')}`);
-            }
-            return parts.join(' && ') || '# No packages selected';
+        if (flatpakFallbackPackages.length > 0) {
+            const flatpakCmd = `flatpak install flathub -y ${flatpakFallbackPackages.join(' ')}`;
+            cmd = cmd ? `${cmd} && ${flatpakCmd}` : flatpakCmd;
         }
 
-        return `${distro.installPrefix} ${packageNames.join(' ')}`;
-    }, [selectedDistro, selectedApps, aurPackageInfo.hasAur, hasYayInstalled, selectedHelper]);
+        return cmd || '# No packages selected';
+    }, [selectedDistro, selectedApps, aurPackageInfo.hasAur, hasYayInstalled, selectedHelper, flatpakActive]);
+
+    const toggleFlatpakEnabled = useCallback(() => {
+        setIsFlatpakEnabled(prev => !prev);
+    }, []);
 
     return {
         selectedDistro,
@@ -280,6 +330,9 @@ export function useLinuxInit(): UseLinuxInitReturn {
         hasUnfreePackages: unfreePackageInfo.hasUnfree,
         unfreeAppNames: unfreePackageInfo.appNames,
         isHydrated: hydrated,
+        isFlatpakEnabled,
+        toggleFlatpakEnabled,
+        isFlatpakFallback,
     };
 }
 

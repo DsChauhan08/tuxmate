@@ -32,6 +32,7 @@ interface CommandFooterProps {
     onDrawerOpen?: () => void;
     onDrawerClose?: () => void;
     activeShortcut?: string | null;
+    isFlatpakEnabled?: boolean;
 }
 
 
@@ -57,6 +58,7 @@ export function CommandFooter({
     onDrawerOpen: externalOnDrawerOpen,
     onDrawerClose: externalOnDrawerClose,
     activeShortcut,
+    isFlatpakEnabled,
 }: CommandFooterProps) {
     const [copied, setCopied] = useState(false);
     const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
@@ -115,6 +117,7 @@ export function CommandFooter({
             distroId: selectedDistro,
             selectedAppIds: selectedApps,
             helper: selectedHelper,
+            isFlatpakEnabled,
         });
         const isNix = selectedDistro === 'nix';
         const mimeType = isNix ? 'text/plain' : 'text/x-shellscript';
