@@ -2,15 +2,22 @@
 
 import { generateAsciiHeader, generateSharedUtils, escapeShellString, type PackageInfo } from './shared';
 
-export function generateFlatpakScript(packages: PackageInfo[]): string {
+export function generateFlatpakScript(packages: PackageInfo[], isAppended: boolean = false): string {
     const parallel = packages.length >= 3;
 
-    return generateAsciiHeader('Flatpak', packages.length) + generateSharedUtils(packages.length) + `
-is_installed() { flatpak list --app 2>/dev/null | grep -q "$1"; }
+    const baseHeader = isAppended ? `
+# ─────────────────────────────────────────────────────────────────────────────
+#  Flatpak Fallback Packages
+# ─────────────────────────────────────────────────────────────────────────────
+TOTAL=$((TOTAL + ${packages.length}))
+` : generateAsciiHeader('Flatpak', packages.length) + generateSharedUtils(packages.length);
+
+    return baseHeader + `
+is_installed_flatpak() { flatpak list --app 2>/dev/null | grep -q "$1"; }
 
 ${parallel ? `
 # Parallel install for Flatpak
-install_parallel() {
+install_flatpak_parallel() {
     local pids=()
     local names=()
     local start=$(date +%s)
@@ -19,9 +26,9 @@ install_parallel() {
         local name="\${pair%%|*}"
         local appid="\${pair##*|}"
         
-        if is_installed "$appid"; then
-            skip "$name"
-            SKIPPED+=("$name")
+        if is_installed_flatpak "$appid"; then
+            skip "$name (Flatpak)"
+            SKIPPED+=("$name (Flatpak)")
             continue
         fi
         
@@ -57,13 +64,13 @@ install_parallel() {
     echo -e "\${DIM}Parallel install took \${elapsed}s\${NC}"
 }
 ` : `
-install_pkg() {
+install_pkg_flatpak() {
     local name=$1 appid=$2
     CURRENT=$((CURRENT + 1))
     
-    if is_installed "$appid"; then
-        skip "$name"
-        SKIPPED+=("$name")
+    if is_installed_flatpak "$appid"; then
+        skip "$name (Flatpak)"
+        SKIPPED+=("$name (Flatpak)")
         return 0
     fi
     
@@ -98,16 +105,13 @@ if ! flatpak remotes 2>/dev/null | grep -q flathub; then
 fi
 
 echo
-info "Installing $TOTAL packages"
+info "Installing Flatpak packages"
 echo
 
 ${parallel
-            ? `install_parallel ${packages.map(({ app, pkg }) => `"${escapeShellString(app.name)}|${pkg}"`).join(' ')}`
-            : packages.map(({ app, pkg }) => `install_pkg "${escapeShellString(app.name)}" "${pkg}"`).join('\n')
+            ? `install_flatpak_parallel ${packages.map(({ app, pkg }) => `"${escapeShellString(app.name)}|${pkg}"`).join(' ')}`
+            : packages.map(({ app, pkg }) => `install_pkg_flatpak "${escapeShellString(app.name)}" "${pkg}"`).join('\n')
         }
 
-print_summary
-echo
-info "Restart session for apps in menu."
-`;
+${!isAppended ? `print_summary\necho\ninfo "Restart session for apps in menu."` : ''}`;
 }

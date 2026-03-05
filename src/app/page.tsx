@@ -15,7 +15,7 @@ import { categories, getAppsByCategory } from '@/lib/data';
 // Components
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { HowItWorks, GitHubLink, ContributeLink } from '@/components/header';
-import { DistroSelector } from '@/components/distro';
+import { DistroSelector, FlatpakToggle } from '@/components/distro';
 import { CategorySection } from '@/components/app';
 import { CommandFooter } from '@/components/command';
 import { Tooltip, GlobalStyles, LoadingSkeleton } from '@/components/common';
@@ -42,6 +42,8 @@ export default function Home() {
         setSelectedHelper,
         hasUnfreePackages,
         unfreeAppNames,
+        isFlatpakEnabled,
+        toggleFlatpakEnabled,
     } = useLinuxInit();
 
     // Search state
@@ -247,9 +249,14 @@ export default function Home() {
                                 <ContributeLink />
                             </div>
 
-                            {/* Right side: Theme + Distro (with separator on desktop) */}
+                            {/* Right side: Theme + Distro + Flatpak (with separator on desktop) */}
                             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-[var(--border-primary)]">
                                 <ThemeToggle />
+                                <FlatpakToggle
+                                    isFlatpakEnabled={isFlatpakEnabled}
+                                    onToggle={toggleFlatpakEnabled}
+                                    selectedDistro={selectedDistro}
+                                />
                                 <DistroSelector selectedDistro={selectedDistro} onSelect={setSelectedDistro} />
                             </div>
                         </div>
@@ -293,6 +300,7 @@ export default function Home() {
                                             onAppFocus={(appId) => setFocusByItem('app', appId)}
                                             isVerified={isVerified}
                                             getVerificationType={getVerificationType}
+                                            isFlatpakEnabled={isFlatpakEnabled}
                                         />
                                     ))}
                                 </div>
@@ -334,6 +342,7 @@ export default function Home() {
                                             onAppFocus={(appId) => setFocusByItem('app', appId)}
                                             isVerified={isVerified}
                                             getVerificationType={getVerificationType}
+                                            isFlatpakEnabled={isFlatpakEnabled}
                                         />
                                     ))}
                                 </div>
@@ -361,6 +370,7 @@ export default function Home() {
                 setSelectedHelper={setSelectedHelper}
                 hasUnfreePackages={hasUnfreePackages}
                 unfreeAppNames={unfreeAppNames}
+                isFlatpakEnabled={isFlatpakEnabled}
             />
         </div>
     );

@@ -25,9 +25,9 @@ interface CommandFooterProps {
     clearAll: () => void;
     selectedHelper: 'yay' | 'paru';
     setSelectedHelper: (helper: 'yay' | 'paru') => void;
-    // Nix unfree
     hasUnfreePackages?: boolean;
     unfreeAppNames?: string[];
+    isFlatpakEnabled?: boolean;
 }
 
 
@@ -48,6 +48,7 @@ export function CommandFooter({
     setSelectedHelper,
     hasUnfreePackages,
     unfreeAppNames,
+    isFlatpakEnabled,
 }: CommandFooterProps) {
     const [copied, setCopied] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -103,6 +104,7 @@ export function CommandFooter({
             distroId: selectedDistro,
             selectedAppIds: selectedApps,
             helper: selectedHelper,
+            isFlatpakEnabled,
         });
         const isNix = selectedDistro === 'nix';
         const ext = isNix ? 'nix' : 'sh';
@@ -116,7 +118,7 @@ export function CommandFooter({
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         const distroName = distros.find(d => d.id === selectedDistro)?.name || selectedDistro;
         analytics.scriptDownloaded(distroName, selectedCount);
-    }, [selectedCount, selectedDistro, selectedApps, selectedHelper]);
+    }, [selectedCount, selectedDistro, selectedApps, selectedHelper, isFlatpakEnabled]);
 
     // Global keyboard shortcuts (vim-like)
     useEffect(() => {

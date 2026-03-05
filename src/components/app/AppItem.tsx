@@ -43,10 +43,9 @@ interface AppItemProps {
     onTooltipLeave: () => void;
     onFocus?: () => void;
     color?: string;
-    /** Whether the app is verified (Flatpak/Snap only) */
     isVerified?: boolean;
-    /** The verification source for styling */
     verificationType?: 'flathub' | 'snap' | null;
+    isFlatpakFallback?: boolean;
 }
 
 export const AppItem = memo(function AppItem({
@@ -62,9 +61,13 @@ export const AppItem = memo(function AppItem({
     color = 'gray',
     isVerified = false,
     verificationType = null,
+    isFlatpakFallback = false,
 }: AppItemProps) {
     // Why isn't this app available? Tell the user.
     const getUnavailableText = () => {
+        if (isFlatpakFallback) {
+            return `Available via Flatpak (installed alongside ${distros.find(d => d.id === selectedDistro)?.name})`;
+        }
         const distroName = distros.find(d => d.id === selectedDistro)?.name || '';
         return app.unavailableReason || `Not available in ${distroName} repos`;
     };
@@ -74,7 +77,7 @@ export const AppItem = memo(function AppItem({
 
     // AUR gets its special Arch blue, everything else uses category color
     const hexColor = COLOR_MAP[color] || COLOR_MAP['gray'];
-    const checkboxColor = isAur ? '#1793d1' : hexColor;
+    const checkboxColor = isAur ? '#1793d1' : (isFlatpakFallback ? '#4A90D9' : hexColor);
 
     return (
         <div
@@ -152,13 +155,13 @@ export const AppItem = memo(function AppItem({
                 {isVerified && verificationType && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                        src={verificationType === 'flathub'
+                        src={verificationType === 'flathub' || isFlatpakFallback
                             ? 'https://api.iconify.design/mdi/check-decagram.svg?color=%234A90D9'  // Flathub blue
                             : 'https://api.iconify.design/mdi/check-decagram.svg?color=%2382BEA0'  // Snap green
                         }
                         className="ml-1 w-3.5 h-3.5 flex-shrink-0 opacity-90"
                         alt="Verified"
-                        title={verificationType === 'flathub'
+                        title={verificationType === 'flathub' || isFlatpakFallback
                             ? 'Verified on Flathub'
                             : 'Verified publisher on Snap Store'
                         }

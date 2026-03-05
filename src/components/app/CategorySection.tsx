@@ -30,8 +30,8 @@ interface CategorySectionProps {
     onAppFocus?: (appId: string) => void;
     /** Check if a package is verified (Flatpak/Snap only) */
     isVerified?: (distro: DistroId, packageName: string) => boolean;
-    /** Get verification type for styling */
     getVerificationType?: (distro: DistroId, packageName: string) => 'flathub' | 'snap' | null;
+    isFlatpakEnabled?: boolean;
 }
 
 /**
@@ -74,6 +74,7 @@ function CategorySectionComponent({
     onAppFocus,
     isVerified,
     getVerificationType,
+    isFlatpakEnabled = false,
 }: CategorySectionProps) {
     const selectedInCategory = categoryApps.filter(a => selectedApps.has(a.id)).length;
     const isCategoryFocused = focusedType === 'category' && focusedId === category;
@@ -175,8 +176,11 @@ function CategorySectionComponent({
                         verificationType={
                             (selectedDistro === 'flatpak' || selectedDistro === 'snap')
                                 ? getVerificationType?.(selectedDistro, app.targets?.[selectedDistro] || '') || null
-                                : null
+                                : (isFlatpakEnabled && !app.targets?.[selectedDistro] && app.targets?.['flatpak'])
+                                    ? getVerificationType?.('flatpak', app.targets?.['flatpak'] || '') || null
+                                    : null
                         }
+                        isFlatpakFallback={isFlatpakEnabled && !app.targets?.[selectedDistro] && !!app.targets?.['flatpak']}
                     />
                 ))}
             </div>
@@ -204,6 +208,7 @@ export const CategorySection = memo(CategorySectionComponent, (prevProps, nextPr
     if (prevProps.focusedId !== nextProps.focusedId) return false;
     if (prevProps.focusedType !== nextProps.focusedType) return false;
     if (prevProps.categoryIndex !== nextProps.categoryIndex) return false;
+    if (prevProps.isFlatpakEnabled !== nextProps.isFlatpakEnabled) return false;
 
     // Check if selection state changed for any app in this category
     for (const app of nextProps.categoryApps) {
