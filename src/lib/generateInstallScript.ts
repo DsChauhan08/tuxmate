@@ -1,6 +1,3 @@
-// Main entry point for generating install scripts.
-// Each distro has its own module - keeps things sane.
-
 import { distros, type DistroId } from './data';
 import {
     getSelectedPackages,
@@ -15,15 +12,14 @@ import {
     generateHomebrewScript,
 } from './scripts';
 
-interface ScriptOptions {
+interface GenerateOptions {
     distroId: DistroId;
     selectedAppIds: Set<string>;
     helper?: 'yay' | 'paru';
     isFlatpakEnabled?: boolean;
 }
 
-// Full install script for download. Nix gets a config file, others get shell scripts.
-export function generateInstallScript(options: ScriptOptions): string {
+export function generateInstallScript(options: GenerateOptions): string {
     const { distroId, selectedAppIds, helper = 'yay', isFlatpakEnabled = false } = options;
     const distro = distros.find(d => d.id === distroId);
 
@@ -57,17 +53,17 @@ export function generateInstallScript(options: ScriptOptions): string {
     }
 
     if (flatpakFallbackPkgs.length > 0) {
-        primaryScript = primaryScript.replace(/print_summary[\n\r]*echo[\n\r]*info "Restart session for apps in menu."$/, '');
+        primaryScript = primaryScript.replace(/print_summary[\n\r]*echo[\s>&3]*[\n\r]*info "Restart session.*"[\s>&3]*$/, '');
         primaryScript = primaryScript.replace(/print_summary$/, '');
         const appendedFlatpakScript = generateFlatpakScript(flatpakFallbackPkgs, true);
-        return primaryScript + '\n' + appendedFlatpakScript + '\nprint_summary\necho\ninfo "Restart session for apps in menu."\n';
+        return primaryScript + '\n' + appendedFlatpakScript + '\nprint_summary\necho >&3\ninfo "Restart session for new apps to appear in menu." >&3\n';
     }
 
     return primaryScript;
 }
 
-// Quick one-liner for copy-paste warriors
-export function generateSimpleCommand(selectedAppIds: Set<string>, distroId: DistroId, isFlatpakEnabled: boolean = false): string {
+export function generateCommandline(options: GenerateOptions): string {
+    const { selectedAppIds, distroId, isFlatpakEnabled = false } = options;
     const packages = getSelectedPackages(selectedAppIds, distroId);
 
     const flatpakFallbackPkgs = isFlatpakEnabled && distroId !== 'flatpak'

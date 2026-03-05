@@ -7,11 +7,7 @@ import { analytics } from '@/lib/analytics';
 import { CategoryHeader } from './CategoryHeader';
 import { AppItem } from './AppItem';
 
-/**
- * A collapsible category section containing a list of apps.
- * Handles its own GSAP animations because CSS transitions just weren't cutting it.
- * Memoized to hell and back because React was re-rendering everything.
- */
+// Category section.
 interface CategorySectionProps {
     category: Category;
     categoryApps: AppData[];
@@ -28,16 +24,11 @@ interface CategorySectionProps {
     categoryIndex: number;
     onCategoryFocus?: () => void;
     onAppFocus?: (appId: string) => void;
-    /** Check if a package is verified (Flatpak/Snap only) */
     isVerified?: (distro: DistroId, packageName: string) => boolean;
-    getVerificationType?: (distro: DistroId, packageName: string) => 'flathub' | 'snap' | null;
+    getVerificationSource?: (distro: DistroId, packageName: string) => 'flathub' | 'snap' | null;
     isFlatpakEnabled?: boolean;
 }
 
-/**
- * Color palette for categories. Vibrant ones go to user-facing stuff,
- * boring grays go to developer tools because we're used to suffering.
- */
 const categoryColors: Record<Category, string> = {
     'Web Browsers': 'orange',
     'Communication': 'blue',
@@ -73,7 +64,7 @@ function CategorySectionComponent({
     onCategoryFocus,
     onAppFocus,
     isVerified,
-    getVerificationType,
+    getVerificationSource,
     isFlatpakEnabled = false,
 }: CategorySectionProps) {
     const selectedInCategory = categoryApps.filter(a => selectedApps.has(a.id)).length;
@@ -82,10 +73,8 @@ function CategorySectionComponent({
     const hasAnimated = useRef(false);
     const prevAppCount = useRef(categoryApps.length);
 
-    // Get color for this category
     const color = categoryColors[category] || 'gray';
 
-    // Initial entrance animation
     useLayoutEffect(() => {
         if (!sectionRef.current || hasAnimated.current) return;
         hasAnimated.current = true;
@@ -94,16 +83,12 @@ function CategorySectionComponent({
         const header = section.querySelector('.category-header');
         const items = section.querySelectorAll('.app-item');
 
-        // Use requestAnimationFrame for smoother initial setup
         requestAnimationFrame(() => {
-            // Initial state with GPU-accelerated transforms
             gsap.set(header, { clipPath: 'inset(0 100% 0 0)' });
             gsap.set(items, { y: -15, opacity: 0, force3D: true });
 
-            // Staggered delay based on category index (reduced for faster feel)
             const delay = categoryIndex * 0.05;
 
-            // Animate header with clip-path reveal
             gsap.to(header, {
                 clipPath: 'inset(0 0% 0 0)',
                 duration: 0.6,
@@ -111,7 +96,6 @@ function CategorySectionComponent({
                 delay: delay + 0.05
             });
 
-            // Animate items with GPU-accelerated transforms
             gsap.to(items, {
                 y: 0,
                 opacity: 1,
@@ -123,11 +107,9 @@ function CategorySectionComponent({
         });
     }, [categoryIndex]);
 
-    // When app count changes (after search clears), ensure all items are visible
     useEffect(() => {
         if (categoryApps.length !== prevAppCount.current && sectionRef.current) {
             const items = sectionRef.current.querySelectorAll('.app-item');
-            // Reset any hidden items to visible
             gsap.set(items, { y: 0, opacity: 1, clearProps: 'all' });
         }
         prevAppCount.current = categoryApps.length;
@@ -153,7 +135,7 @@ function CategorySectionComponent({
                 color={color}
             />
             <div
-                className={`overflow-hidden transition-[max-height,opacity] duration-500 ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`overflow-hidden transition-[max-height,opacity] duration-500 pt-0.5 ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}
                 style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
             >
                 {categoryApps.map((app) => (
@@ -173,11 +155,11 @@ function CategorySectionComponent({
                             (selectedDistro === 'flatpak' || selectedDistro === 'snap') &&
                             isVerified?.(selectedDistro, app.targets?.[selectedDistro] || '') || false
                         }
-                        verificationType={
+                        verificationSource={
                             (selectedDistro === 'flatpak' || selectedDistro === 'snap')
-                                ? getVerificationType?.(selectedDistro, app.targets?.[selectedDistro] || '') || null
+                                ? getVerificationSource?.(selectedDistro, app.targets?.[selectedDistro] || '') || null
                                 : (isFlatpakEnabled && !app.targets?.[selectedDistro] && app.targets?.['flatpak'])
-                                    ? getVerificationType?.('flatpak', app.targets?.['flatpak'] || '') || null
+                                    ? getVerificationSource?.('flatpak', app.targets?.['flatpak'] || '') || null
                                     : null
                         }
                         isFlatpakFallback={isFlatpakEnabled && !app.targets?.[selectedDistro] && !!app.targets?.['flatpak']}
@@ -188,20 +170,13 @@ function CategorySectionComponent({
     );
 }
 
-/**
- * Custom memo comparison because React's shallow compare was killing perf.
- * This is the kind of thing that makes you question your career choices.
- */
 export const CategorySection = memo(CategorySectionComponent, (prevProps, nextProps) => {
-    // Always re-render if app count changes
     if (prevProps.categoryApps.length !== nextProps.categoryApps.length) return false;
 
-    // Check if app IDs are the same
     const prevIds = prevProps.categoryApps.map(a => a.id).join(',');
     const nextIds = nextProps.categoryApps.map(a => a.id).join(',');
     if (prevIds !== nextIds) return false;
 
-    // Check other important props
     if (prevProps.category !== nextProps.category) return false;
     if (prevProps.isExpanded !== nextProps.isExpanded) return false;
     if (prevProps.selectedDistro !== nextProps.selectedDistro) return false;
@@ -210,7 +185,9 @@ export const CategorySection = memo(CategorySectionComponent, (prevProps, nextPr
     if (prevProps.categoryIndex !== nextProps.categoryIndex) return false;
     if (prevProps.isFlatpakEnabled !== nextProps.isFlatpakEnabled) return false;
 
-    // Check if selection state changed for any app in this category
+    if (prevProps.isVerified !== nextProps.isVerified) return false;
+    if (prevProps.getVerificationSource !== nextProps.getVerificationSource) return false;
+
     for (const app of nextProps.categoryApps) {
         if (prevProps.selectedApps.has(app.id) !== nextProps.selectedApps.has(app.id)) {
             return false;

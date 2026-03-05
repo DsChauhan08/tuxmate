@@ -1,38 +1,17 @@
-// Nix unfree package detection - these require allowUnfree = true
+import nixUnfreeList from './nix-unfree.json';
 
-export const KNOWN_UNFREE_PACKAGES = new Set([
-    'discord',
-    'slack',
-    'zoom-us',
-    'teams',
-    'skypeforlinux',
-    'google-chrome',
-    'vivaldi',
-    'opera',
-    'spotify',
-    'steam',
-    'vscode',
-    'sublime',
-    'sublime4',
-    'jetbrains',
-    'nvidia-x11',
-    'dropbox',
-    '1password',
-    'masterpdfeditor',
-    'postman',
-    'obsidian',
-    'davinci-resolve',
-    'code-cursor',
-    'vagrant',
-]);
+
+
+const UNFREE_PACKAGES = new Set(nixUnfreeList.packages);
 
 export function isUnfreePackage(pkg: string): boolean {
     const cleanPkg = pkg.trim().toLowerCase();
-    if (KNOWN_UNFREE_PACKAGES.has(cleanPkg)) return true;
 
-    // Nested packages like jetbrains.idea-ultimate
-    for (const unfree of KNOWN_UNFREE_PACKAGES) {
-        if (cleanPkg.includes(unfree)) return true;
+    if (UNFREE_PACKAGES.has(cleanPkg)) return true;
+
+    for (const unfreePkg of Array.from(UNFREE_PACKAGES)) {
+        if (cleanPkg.includes(unfreePkg)) return true;
     }
+
     return false;
 }
